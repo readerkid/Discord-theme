@@ -291,18 +291,57 @@
 }
 
 /* Body-ported popups also need transparent backgrounds */
+
+/* REMOVED: the old "nested-popout safety" that cleared backdrop-filter on every
+   [role="menu"]/[listbox]/dropdown/submenu root AND the :has() host guard.
+   They backfired: the :has() guard matched every top-level menu root (a menu's
+   items hold nested popout/submenu children), wiping their blur -> menus went
+   fully transparent. The real clipping source in Toolbox->Themes was the blurred
+   toolbox scroller, which is now handled directly by the toolbox rule below
+   (backdrop-filter: none across the whole subtree). */
 :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"]) {
   background-color: rgba(0, 0, 0, 0.25) !important;
   background-image: none !important;
 }
 
-/* Toolbox themes/plugins scroller: keep transparent so parent's blur shows */
-#app-mount [id*="vc-toolbox"] [class*="scroller_"] {
+/* Nested popup surfaces (a popout/menu inside a menu) are intentionally unblurred
+   — blurring them pins the inner popup to the outer one and clips it. Without
+   blur they need a near-opaque background to stay readable. Applies everywhere,
+   including the toolbox subtree (this rule's higher specificity beats the
+   toolbox background:transparent strip). */
+#app-mount [role="menu"] [role="menu"],
+#app-mount :is([role="menu"], [role="listbox"]) :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"]) {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  background-image: none !important;
+}
+
+/* Toolbox: keep transparent backgrounds, but NO backdrop-filter anywhere in the
+   subtree. The toolbox scroller hosts nested popouts (Themes, etc.); blurring it
+   pins them to their box and clips them at its edge (popout-of-a-popout bug).
+   High specificity so the late top-level-menu re-blur (below) can't re-blur the
+   toolbox's own nested menus. */
+#app-mount [id*="vc-toolbox"],
+#app-mount [id*="vc-toolbox"] * {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#app-mount [id*="vc-toolbox"] [role="menu"],
+#app-mount [id*="vc-toolbox"] [class*="submenu_"],
+#app-mount [id*="vc-toolbox"] [class*="dropdown_"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The toolbox PARENT popout (top-level menu in toolbox, not nested): no blur (it
+   is the outer surface), but give it a dark veil so the pane reads as a frosted
+   panel rather than raw transparency. Higher specificity than the transparent
+   strip above; the nested child below keeps its own lighter surface. */
+#app-mount [id*="vc-toolbox"] [role="menu"]:not([role="menu"] [role="menu"]) {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  background-image: none !important;
 }
 
 /* Blur behind the inbox */
@@ -335,7 +374,19 @@
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
-#app-mount .user-profile-modal-v2 {
+#app-mount :is(.user-profile-popout, .user-profile-modal-v2) {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
+
+/* Re-blur TOP-LEVEL menus after the dialog reset. The dialog reset below strips
+   backdrop-filter from [role="dialog"] * (equal specificity, later source) which
+   otherwise wipes menu blur whenever a menu lives inside a dialog layer. Only the
+   top-level [role="menu"] is blurred: nested submenus (a menu inside a menu) stay
+   clear so they are never pinned/clipped by a blurred ancestor. */
+#app-mount [role="menu"]:not([role="menu"] [role="menu"]) {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  background-image: none !important;
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
@@ -384,13 +435,6 @@
 
 /* Vencord settings items: transparent backgrounds so overlay blur shows */
 #app-mount :is([class*="dwx-bG"], [class*="dwx-sZ"], [class*="dwx-p8"]) {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* All Vencord toolbox children: transparent backgrounds */
-#app-mount [id*="vc-toolbox"] * {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
