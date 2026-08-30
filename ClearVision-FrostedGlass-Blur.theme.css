@@ -1,7 +1,7 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.1.0
+ * @version 1.2.0
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  */
@@ -11,6 +11,11 @@
 
 :root {
   --cv-blur: 3px;
+
+  /* Declared for parity with the original ClearVision FrostedGlass theme.
+     Current ClearVision-v7 main.css does not reference them (inert). */
+  --user-popout-blur: 0px;
+  --user-modal-blur: 0px;
 
   /* FrostedGlass-style base */
   --main-color: #8ea0ff;
@@ -253,23 +258,21 @@
 /* === ADJUSTABLE BLUR BEHIND OVERLAYS === */
 /* Change --cv-blur in :root above to adjust blur intensity. 0px disables blur. */
 
-/* Approach 1: backdrop-filter on the overlay layer itself.
-   Remove isolation/transform that block it, then apply blur. */
-#app-mount .layer__960e4:not(.baseLayer__960e4) {
-  isolation: auto !important;
-  transform: none !important;
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
-}
+/* ROOT-CAUSE NOTE (verified): one of the backdrop-filter rules below was loading on the
+   image viewer's focusLock wrapper (role="dialog") and made Chrome treat that focusLock
+   as the containing block of the absolutely-positioned carousel modal. focusLock has no
+   in-flow content, so it collapsed to width:0 and dragged the modal + its nav buttons to
+   screen center. The BULLETPROOF SAFE RESET (bottom of this section) strips backdrop-filter
+   from every dialog root and every dialog descendant, so no blur rule can ever re-trigger
+   the collapse. */
 
-/* Approach 2: backdrop-filter on the scrim (dark overlay behind settings).
-   The scrim sits between the base layer and the settings content. */
+/* Backdrop-filter on the scrim (dark overlay behind settings/modals). */
 #app-mount .scrim__40128 {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Approach 3: backdrop-filter on the modal outer container. */
+/* Backdrop-filter on the modal outer containers (settings, etc.). */
 #app-mount :is(.outerContainer_e44912, .modal_e44912) {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
@@ -281,14 +284,14 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Blur behind body-ported popups (popout-of-a-popout, etc.) */
-:is([role="menu"], [role="dialog"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"], [class*="insightsPopout"]) {
+/* Blur behind body-ported popups (popout-of-a-popout, etc.). */
+:is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"], [class*="insightsPopout"]) {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
 /* Body-ported popups also need transparent backgrounds */
-:is([role="menu"], [role="dialog"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"]) {
+:is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"]) {
   background-color: rgba(0, 0, 0, 0.25) !important;
   background-image: none !important;
 }
@@ -302,11 +305,10 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* All Vencord toolbox children: transparent backgrounds */
-#app-mount [id*="vc-toolbox"] * {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
+/* Blur behind the inbox */
+#app-mount :is([class*="inbox_"], [class*="Inbox_"], [class*="pillMessages"]) {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
 /* User profile popouts AND full profile modals: replace wallpaper with transparency + blur */
@@ -315,6 +317,34 @@
   background-image: none !important;
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
+}
+
+/* --- BULLETPROOF SAFE RESET: no dialog (or child) carries a backdrop-filter ---
+   Runs AFTER all blur rules above. The image viewer's focusLock has role="dialog";
+   the carousel modal is absolutely positioned inside it, so a backdrop-filter here
+   collapses it to width:0 (the original bug). */
+#app-mount [role="dialog"],
+#app-mount [role="dialog"] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Deliberately re-blur specific dialog surfaces the reset would otherwise strip */
+#app-mount .outerContainer_e44912,
+#app-mount .modal_e44912 {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
+#app-mount .user-profile-modal-v2 {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
+
+/* Carousel modal safety (belt and suspenders) */
+.carouselModal_d3a6f0,
+.focusLock__49fc1 {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* ClearVision sets wallpaper via ::before — kill it */
@@ -359,8 +389,9 @@
   background-image: none !important;
 }
 
-/* Blur behind the inbox */
-#app-mount :is([class*="inbox_"], [class*="Inbox_"], [class*="pillMessages"]) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
+/* All Vencord toolbox children: transparent backgrounds */
+#app-mount [id*="vc-toolbox"] * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
 }
