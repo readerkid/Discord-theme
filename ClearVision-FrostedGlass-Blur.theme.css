@@ -154,6 +154,12 @@
   background: rgba(0, 0, 0, 0.10) !important;
 }
 
+/* Bottom-left user/account panel: light translucent surface so the avatar,
+   username and status read clearly instead of raw wallpaper. */
+#app-mount :is(.panels__58331, [class*="accountProfilePanel_"], [class*="accountProfile_"], [class*="accountDetails_"]) {
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
 #app-mount :is(.contentRegionScroller__23e6b, .contentHeader_e9e3ed, .categories__6131a, .sidebarRegionScroller__23e6b) {
   background: rgba(0, 0, 0, 0.15) !important;
 }
