@@ -358,7 +358,7 @@
 
 /* User profile popouts AND full profile modals: replace wallpaper with transparency + blur */
 :is(.user-profile-popout, .user-profile-modal-v2) {
-  background: rgba(30, 30, 45, 0.35) !important;
+  background: rgba(30, 30, 45, 0.6) !important;
   background-image: none !important;
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
