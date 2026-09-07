@@ -380,6 +380,14 @@
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
+
+/* Re-blur message/pinned popouts that the dialog reset above would strip.
+   The pinned-messages popout renders as a [role="dialog"] descendant, so it
+   needs its own exception here (like the modal surfaces above). */
+#app-mount :is([class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"]) {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
 #app-mount :is(.user-profile-popout, .user-profile-modal-v2) {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
