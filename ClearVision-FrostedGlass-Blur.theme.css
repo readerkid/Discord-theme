@@ -412,11 +412,11 @@
   background: transparent !important;
 }
 
-/* Server/admin settings content panes were only translucent (unblurred wallpaper
-   showing through). Frost them: backdrop-filter on the fixed-box content region
-   (its inner scroller just moves content inside an unmoving box, so the blur is
-   stable while scrolling). */
-#app-mount :is([class*="contentRegion"], [class*="contentRegionScroller"]) {
+/* Server/user settings content AND nav panes were only translucent (unblurred
+   wallpaper showing through). Frost them: backdrop-filter on the fixed-box
+   regions (their inner scrollers just move content inside unmoving boxes, so the
+   blur is stable while scrolling). */
+#app-mount :is([class*="contentRegion"], [class*="contentRegionScroller"], [class*="sidebarRegion"], [class*="sidebarRegionScroller"], [class*="standardSidebarView"]) {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
