@@ -453,6 +453,16 @@
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
+/* The per-row info/usage text blocks (tailwind-like text-*/normal_ classes and
+   .usageWrapper_) also paint their own rgba(0,0,0,0.28) on top of the frosted
+   popup, doubling the darkening exactly behind the text. Strip those too. */
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="text-"][class*="/normal_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="text-"][class*="/medium_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="usageWrapper_"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 /* Server/user settings content AND nav panes were only translucent (unblurred
    wallpaper showing through). Frost them: backdrop-filter on the fixed-box
    regions (their inner scrollers just move content inside unmoving boxes, so the
