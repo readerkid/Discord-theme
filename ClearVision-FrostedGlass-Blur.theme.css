@@ -399,7 +399,7 @@
    leaves the viewport unblurred. Put the blur on the (non-scrolling) popup root
    and keep the scrolling list transparent. */
 #app-mount [class*="autocomplete"] {
-  background-color: rgba(0, 0, 0, 0.25) !important;
+  background-color: rgba(0, 0, 0, 0.28) !important;
   background-image: none !important;
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
@@ -410,6 +410,16 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   background: transparent !important;
+}
+
+/* Autocomplete text: the frosted surface can leave the default text looking
+   dark/low-contrast, so pin option and section text to readable light tones. */
+#app-mount [class*="autocomplete"] [class*="option"] :is([class*="header_"], [class*="label_"], [class*="name_"], [class*="subtext_"], [class*="query_"], [class*="description_"]),
+#app-mount [class*="autocomplete"] [class*="option"] {
+  color: rgb(228, 230, 236) !important;
+}
+#app-mount [class*="autocomplete"] [class*="section"] {
+  color: rgb(180, 184, 194) !important;
 }
 
 /* Server/user settings content AND nav panes were only translucent (unblurred
