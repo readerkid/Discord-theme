@@ -435,6 +435,24 @@
   background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
+/* New autocomplete UI (row class is .clickable_, not .option_; band layers are
+   .base_ and .wrapper_): clear every one of those that paints a dark or colored
+   strip over the frosted surface so the popup stays one uniform panel. */
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="base_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="wrapper_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="categorySection_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="listItems_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="infoWrapper_"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="usageWrapper_"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"][aria-selected="true"],
+#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"]:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 /* Server/user settings content AND nav panes were only translucent (unblurred
    wallpaper showing through). Frost them: backdrop-filter on the fixed-box
    regions (their inner scrollers just move content inside unmoving boxes, so the
