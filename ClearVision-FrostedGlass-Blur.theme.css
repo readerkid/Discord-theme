@@ -422,6 +422,19 @@
   color: rgb(180, 184, 194) !important;
 }
 
+/* Autocomplete rows: clear each option's native dark background so the popup is
+   one uniform frosted surface (no darker stripes behind the text). Keep a faint
+   highlight on the selected row so the cursor position is still visible. */
+#app-mount [class*="autocomplete"] [class*="option"],
+#app-mount [class*="autocomplete"] [class*="option"] * {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+#app-mount [class*="autocomplete"] [class*="option"][aria-selected="true"],
+#app-mount [class*="autocomplete"] [class*="option"]:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 /* Server/user settings content AND nav panes were only translucent (unblurred
    wallpaper showing through). Frost them: backdrop-filter on the fixed-box
    regions (their inner scrollers just move content inside unmoving boxes, so the
