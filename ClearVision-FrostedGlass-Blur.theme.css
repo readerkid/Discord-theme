@@ -423,16 +423,11 @@
 }
 
 /* Autocomplete rows: clear each option's native dark background so the popup is
-   one uniform frosted surface (no darker stripes behind the text). Keep a faint
-   highlight on the selected row so the cursor position is still visible. */
+   one uniform frosted surface with no highlights on any row. */
 #app-mount [class*="autocomplete"] [class*="option"],
 #app-mount [class*="autocomplete"] [class*="option"] * {
   background-color: transparent !important;
   background-image: none !important;
-}
-#app-mount [class*="autocomplete"] [class*="option"][aria-selected="true"],
-#app-mount [class*="autocomplete"] [class*="option"]:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* New autocomplete UI (row class is .clickable_, not .option_; band layers are
@@ -448,10 +443,8 @@
   background-color: transparent !important;
   background-image: none !important;
 }
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"][aria-selected="true"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"]:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
+
+/* No selected/hover highlight; the whole list stays a uniform frosted panel. */
 
 /* The per-row info/usage text blocks (tailwind-like text-*/normal_ classes and
    .usageWrapper_) also paint their own rgba(0,0,0,0.28) on top of the frosted
