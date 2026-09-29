@@ -393,6 +393,34 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
+/* Command autocomplete popup: blur the POPUP SURFACE, not the tall options list.
+   The options list is [role="listbox"] inside the scroll container; blurring it
+   only frosts whatever rows are currently visible, so scrolling far enough
+   leaves the viewport unblurred. Put the blur on the (non-scrolling) popup root
+   and keep the scrolling list transparent. */
+#app-mount [class*="autocomplete"] {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
+#app-mount [class*="autocomplete"] [role="listbox"],
+#app-mount [class*="autocomplete"] [class*="scroller_"],
+#app-mount [class*="autocomplete"] [class*="list_"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: transparent !important;
+}
+
+/* Server/admin settings content panes were only translucent (unblurred wallpaper
+   showing through). Frost them: backdrop-filter on the fixed-box content region
+   (its inner scroller just moves content inside an unmoving box, so the blur is
+   stable while scrolling). */
+#app-mount :is([class*="contentRegion"], [class*="contentRegionScroller"]) {
+  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
+  backdrop-filter: blur(var(--cv-blur)) !important;
+}
+
 /* Re-blur TOP-LEVEL menus after the dialog reset. The dialog reset below strips
    backdrop-filter from [role="dialog"] * (equal specificity, later source) which
    otherwise wipes menu blur whenever a menu lives inside a dialog layer. Only the
