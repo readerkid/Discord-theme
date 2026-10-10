@@ -356,10 +356,11 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* User profile popouts AND full profile modals: replace wallpaper with transparency + blur */
+/* User profile popouts AND full profile modals: never paint our own background
+   here — users with custom profile themes must see their backdrop (light custom
+   backgrounds + dark text only break when we replace it with a dark veil).
+   Default profiles keep Discord's native panel underneath; we just frost it. */
 :is(.user-profile-popout, .user-profile-modal-v2) {
-  background: rgba(30, 30, 45, 0.6) !important;
-  background-image: none !important;
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
