@@ -1,10 +1,15 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.6
+ * @version 1.7.7
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.7 — The halo was a SECOND frost layer on the wrapper a popup is mounted
+ *         in, ~10px larger than the panel, so its uncovered rim was the band.
+ *         A wrap container (contains a popup, is not a popup) no longer paints
+ *         one; the popup's own layer is the only surface. Veil 0.34 -> 0.59 so
+ *         the panel keeps the tone two stacked 0.34 veils gave it. No border.
  * 1.7.6 — No border on popups any more (the 1px strokes are gone), and the
  *         lighter 10px band around a panel is now flattened by a 10px ring in
  *         the frost layer's own tone at 0.38 - the measured difference between
@@ -783,23 +788,32 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.34) !important;
+  background-color: rgba(0, 0, 0, 0.59) !important;
 }
 
-/* === THE LIGHTER RING AROUND A PANEL, SOLVED WITHOUT KNOWING THE DOM ===
-   Measured on a live screenshot (menu over the chat, background 92):
-     x 787..796 -> 62.6   flat 10px band   (sharpness 0.10)
-     x 798..803 -> 37.6   the panel        (sharpness 0.05)
-   62.6 = 92 x (1 - 0.34), i.e. nothing but this frost layer's veil.
-   37.6 = 62.6 x (1 - 0.38), i.e. one more ~0.38 layer painted 10px further in.
-   So an inner container paints the panel inside the popup's box, and the outer
-   10px of frost has no such layer over it - which is exactly the band that is
-   slightly lighter than the panel. Removing that inner layer failed because it
-   is nested deeper than any safe selector reaches.
-   Instead, give the frost layer itself a 10px inset ring at 0.38 in its own
-   tone: the band then carries the same darkening as the panel and the two
-   surfaces read as one. Nothing is drawn as a border - the ring is inside the
-   surface, matches its colour, and cannot be seen as a line. */
-#app-mount :is([role="menu"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"])::after {
-  box-shadow: inset 0 0 0 10px rgba(0, 0, 0, 0.38) !important;
+/* === ONE FROST LAYER PER POPUP ===
+   Measured on a live screenshot (menu over the chat, background luminance 92):
+     x 787..796 -> 62.6   10px band, sharpness 0.10  (detail gone = blurred)
+     x 798..803 -> 37.6   the panel, sharpness 0.05
+   62.6 = 92 x (1 - 0.34): exactly ONE veil, with nothing over it.
+   37.6 = 62.6 x (1 - 0.40): a SECOND layer of the same kind on top.
+   The 1.7.6 ring proved which is which: darkening the inner 10px of the
+   [role="menu"] layer made the panel's border thicker, so that layer sits on
+   the panel. The band therefore belongs to a second, ~10px larger frost layer
+   on the wrapper the popup is mounted in (the `popout_`/layer element). Two
+   nested veils, boxes 10px apart: the outer one's uncovered rim is the halo.
+   Fix: a wrap container is an element that contains a popup but is not one
+   itself. It must not paint a frost layer at all. The popup's own layer then
+   sits flush on the panel, the page outside stays sharp, and there is no rim
+   left to be lighter. The veil goes 0.34 -> 0.59 so the panel keeps the exact
+   tone it had with both layers (0.34 over 0.34 = 0.405 ~ 0.41). */
+#app-mount *:has(:is([role="menu"], [role="listbox"], [class*="submenu_"], [class*="dropdown_"],
+                     [class*="popout_"], [class*="messagesPopout"], [class*="recentMentionsPopout"],
+                     [class*="threadsPopout"], [class*="insightsPopout"])):not(:is([role="menu"], [role="listbox"],
+                     [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"],
+                     [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]))::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
