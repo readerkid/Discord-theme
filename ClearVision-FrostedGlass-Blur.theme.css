@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.1
+ * @version 1.8.2
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.2 — The panel is back, as ONE layer. 1.8.1 removed the element-level
+ *         surfaces and left only a thin black veil, so popups stopped reading
+ *         as panels at all (a sheet of glass with no surface). The frost layer
+ *         now paints the panel itself - var(--cv-panel), a light neutral at 0.70
+ *         - so the surface is dense enough to be a panel and still uniform edge
+ *         to edge, which is what kills the rim.
  * 1.8.1 — No popup element paints a background any more. The 0.35 top-level
  *         surface was (1,3,0) because of its :not([role="menu"] [role="menu"]),
  *         so it beat the transparent rule (1,1,0) and survived every earlier
@@ -93,6 +99,15 @@
 
 :root {
   --cv-blur: 3px;
+
+  /* POPUP PANEL. One surface, one value - this is the colour of every popup
+     (menus, submenus, popouts, dropdowns, the command list). The last number is
+     how much of the blurred backdrop it covers: 0 = pure glass, 1 = solid
+     panel. The RGB is the tone: raise it for a lighter panel, lower for darker.
+     Over Discord's dark wallpaper this lands around 59 luminance, i.e. the same
+     lightness as Discord's own menus, while still letting ~30% of the blurred
+     wallpaper through. */
+  --cv-panel: rgba(64, 67, 74, 0.70);
 
   /* Declared for parity with the original ClearVision FrostedGlass theme.
      Current ClearVision-v7 main.css does not reference them (inert). */
@@ -806,5 +821,5 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.30) !important;
+  background-color: var(--cv-panel) !important;
 }
