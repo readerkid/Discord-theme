@@ -1,10 +1,18 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.2
+ * @version 1.8.3
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.3 — The ring is the popup's own transparent border. `inset: 0` on the
+ *         frost ::after resolves to the PADDING box, so a transparent border
+ *         (Discord's hover bridge on submenu wrappers) is a 9px ring of bare
+ *         page between the panel and the popup edge - sharp on both sides,
+ *         which is why it never behaved like a shadow or a glow. Border
+ *         width zeroed on every popup flavour and its pseudos, so the layer
+ *         meets the edge. Panel alpha 0.70 -> 0.55: same lightness, but it
+ *         now takes its colour from the wallpaper instead of reading grey.
  * 1.8.2 — The panel is back, as ONE layer. 1.8.1 removed the element-level
  *         surfaces and left only a thin black veil, so popups stopped reading
  *         as panels at all (a sheet of glass with no surface). The frost layer
@@ -105,9 +113,10 @@
      how much of the blurred backdrop it covers: 0 = pure glass, 1 = solid
      panel. The RGB is the tone: raise it for a lighter panel, lower for darker.
      Over Discord's dark wallpaper this lands around 59 luminance, i.e. the same
-     lightness as Discord's own menus, while still letting ~30% of the blurred
-     wallpaper through. */
-  --cv-panel: rgba(64, 67, 74, 0.70);
+     lightness as Discord's own menus, while still letting ~45% of the blurred
+     wallpaper through, so it picks up the wallpaper's colour instead of
+     reading as a flat grey. */
+  --cv-panel: rgba(70, 74, 84, 0.55);
 
   /* Declared for parity with the original ClearVision FrostedGlass theme.
      Current ClearVision-v7 main.css does not reference them (inert). */
@@ -604,6 +613,35 @@
 #app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* === THE RING IS THE POPUP'S OWN TRANSPARENT BORDER ===
+   Measured 1px at a time across the left edge of the theme menu:
+
+       1012..1015   41 41 43 41                 the page
+       1016..1018   46 52 48                    a bright spot in the wallpaper
+       1019..1027   29 26 26 24 25 28 28 26 26  9px, sharp on BOTH sides
+       1028..       58 58 58 58                 the frost layer / panel
+
+   A shadow fades at both ends; this starts and stops dead, so it is a box of
+   its own rather than a glow. It is the ring the frost layer cannot reach:
+   `inset: 0` on a ::after resolves to the PADDING box, so a transparent border
+   on the popup leaves exactly that much bare page between the panel and the
+   popup's edge. Discord uses a transparent border on submenu/wrapper elements
+   as a hover bridge, which is also why popups have been ~9px fatter than a
+   normal menu the whole time.
+
+   Zeroing the border makes the padding box *be* the border box, so the frost
+   layer meets the popup's edge and the ring has nowhere to sit. Done for every
+   popup flavour and for their pseudo-elements, since a wrapper can carry it
+   just as easily as the menu itself. */
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]),
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"])::before,
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"])::after {
+  border-width: 0 !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Frost layer. IMPORTANT: the blur radius is a LITERAL, not a var().
