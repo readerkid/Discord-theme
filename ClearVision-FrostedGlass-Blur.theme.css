@@ -1,10 +1,18 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.9
+ * @version 1.8.0
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.0 — ROOT CAUSE, from ClearVision's own stylesheet (fetched and grepped):
+ *         `.menu_c1e9c4 { background: var(--hsl-popout-shading) }` and in
+ *         theme-dark `--popout-shading: rgba(0, 0, 0, 0.6)`. That 0.6 surface is
+ *         the dark panel, and our transparent-popup list matched submenu_ /
+ *         popout_ / dropdown_ but never menu_, so the panel kept painting
+ *         inside the frost layer - 13px in, leaving that rim of bare frost as
+ *         the halo. menu_ is in the list now, so the frost layer is the only
+ *         surface and the panel is uniform and light (veil 0.40).
  * 1.7.9 — The probe named it: ONE frost layer, on the menu element, 12px wider
  *         than the panel inside it. Padding zeroed and inner surfaces cleared so
  *         the layer and the panel share one box. Panel veil 0.40 = light.
@@ -781,7 +789,7 @@
    Fix: there is only one surface now. The popup element's own background becomes
    transparent and the frost ::after paints BOTH the veil and the blur, so the
    rounded edge exists once instead of twice. */
-#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
+#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="menu_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
   background-color: transparent !important;
   background-image: none !important;
 }
@@ -796,64 +804,4 @@
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
   background-color: rgba(0, 0, 0, 0.22) !important;
-}
-
-/* === ONE FROST LAYER PER POPUP ===
-   Measured on a live screenshot (menu over the chat, background luminance 92):
-     x 787..796 -> 62.6   10px band, sharpness 0.10  (detail gone = blurred)
-     x 798..803 -> 37.6   the panel, sharpness 0.05
-   62.6 = 92 x (1 - 0.34): exactly ONE veil, with nothing over it.
-   37.6 = 62.6 x (1 - 0.40): a SECOND layer of the same kind on top.
-   The 1.7.6 ring proved which is which: darkening the inner 10px of the
-   [role="menu"] layer made the panel's border thicker, so that layer sits on
-   the panel. The band therefore belongs to a second, ~10px larger frost layer
-   on the wrapper the popup is mounted in (the `popout_`/layer element). Two
-   nested veils, boxes 10px apart: the outer one's uncovered rim is the halo.
-   Fix: a wrap container is an element that contains a popup but is not one
-   itself. It must not paint a frost layer at all. The popup's own layer then
-   sits flush on the panel, the page outside stays sharp, and there is no rim
-   left to be lighter. The veil goes 0.34 -> 0.59 so the panel keeps the exact
-   tone it had with both layers (0.34 over 0.34 = 0.405 ~ 0.41). */
-#app-mount *:has(:is([role="menu"], [role="listbox"], [class*="submenu_"], [class*="dropdown_"],
-                     [class*="popout_"], [class*="messagesPopout"], [class*="recentMentionsPopout"],
-                     [class*="threadsPopout"], [class*="insightsPopout"])):not(:is([role="menu"], [role="listbox"],
-                     [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"],
-                     [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]))::after {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
-/* === THE 12px BETWEEN THE FROST LAYER AND THE PANEL ===
-   The probe screenshot settled it. Rings appear only on `[class*="menu_"]` /
-   `[class*="submenu_"]` elements - no popout_, layer_, stack_ or wrapper_ layer
-   exists anywhere. Measured across the middle menu at y=250 (background 27,
-   blurred neighbourhood pulls it up):
-
-       x 1072..1074   73   the probe ring, i.e. the FROST LAYER's own box edge
-       x 1076..1086   55   inside the layer, no dark surface over it
-       x 1088..       34   the panel                                   (0.62)
-
-   So there is exactly one frost layer and it is on the menu element - the band
-   is the menu's own box showing around a darker panel that sits INSIDE it,
-   ~12px in. `inset: 0` on the layer covers the padding box, so if that 12px is
-   the menu's own padding the layer is simply bigger than the surface inside it.
-   Two things can make that gap, so both are closed here:
-
-     1. the popup's padding is zeroed, so its box IS the inner surface's box;
-     2. direct children may not paint their own surface, so if that 12px is an
-        inset child instead, the frost layer becomes the only surface and the
-        gap has no colour of its own.
-
-   Either way the band loses its own tone. The veil is 0.40: with the inner
-   surface gone the panel is one veil, so this is the light panel that was
-   asked for - lighter than the 0.34+0.38 it started at, and far lighter than
-   the 0.59 that made it too dark. */
-#app-mount :is([role="menu"], [class*="submenu_"], [class*="dropdown_"], [role="listbox"]):not([role="menu"] [role="menu"] [role="menu"]) {
-  padding: 0 !important;
-}
-#app-mount :is([role="menu"], [class*="submenu_"], [class*="dropdown_"], [role="listbox"]) > * {
-  background-color: transparent !important;
-  background-image: none !important;
 }
