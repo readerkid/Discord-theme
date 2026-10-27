@@ -1,10 +1,14 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.3
+ * @version 1.7.4
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.4 — No drop shadow on popups. 1.7.3 added `0 8px 24px rgba(0,0,0,.35)`
+ *         for depth; on a frosted popup that soft shadow reads as extra haze
+ *         past the border (measured: 36.7 -> 69.7 luminance over the 60px
+ *         outside a panel edge). Popups are flat again, only 1px strokes.
  * 1.7.3 — Popup hairline solved. It was the antialiased boundary of the rounded
  *         `backdrop-filter` surface, letting unfiltered desktop through for one
  *         pixel (invisible in a software render, present on the GPU). Popups are
@@ -794,13 +798,19 @@
    The cure is to stop the antialiasing from blending panel-tone against the
    bright desktop: a 1px stroke in the panel's own tone sits on both sides of the
    boundary, so the boundary pixels resolve dark-on-dark and the rim cannot
-   appear. It reads as an intentional popup edge, not an artifact. */
+   appear. It reads as an intentional popup edge, not an artifact.
+
+   NO DROP SHADOW HERE. 1.7.3 also carried `0 8px 24px rgba(0,0,0,.35)` for
+   depth, and that is the "extra blur past the border": measured on a live
+   screenshot, luminance just outside a panel edge was 36.7 and rose to 69.7
+   over the next 60px — a soft dark haze clinging to every popup, lighter than
+   the near-black panel and easy to read as leftover frost. Popups are flat
+   now; only the two 1px strokes remain, and both are edge pixels. */
 #app-mount :is([role="menu"], [role="listbox"],
                [class*="popout_"], [class*="submenu_"], [class*="dropdown_"],
                [class*="messagesPopout"], [class*="recentMentionsPopout"],
                [class*="threadsPopout"], [class*="insightsPopout"]) {
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.30),
-    0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 8px 24px rgba(0, 0, 0, 0.35) !important;
+    0 0 0 1px rgba(0, 0, 0, 0.55) !important;
 }
