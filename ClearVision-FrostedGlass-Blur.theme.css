@@ -1,10 +1,14 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.5
+ * @version 1.7.6
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.6 — No border on popups any more (the 1px strokes are gone), and the
+ *         lighter 10px band around a panel is now flattened by a 10px ring in
+ *         the frost layer's own tone at 0.38 - the measured difference between
+ *         the band and the panel. Panel tone is back to what it was in 1.7.4.
  * 1.7.5 — Killed the lighter ring around popups. The frost layer covered the
  *         popup element while an inner container painted the darker panel ~10px
  *         further in, so 10px of frost hung outside the panel edge. Nothing
@@ -779,64 +783,23 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.58) !important;
+  background-color: rgba(0, 0, 0, 0.34) !important;
 }
 
-/* === THE LIGHTER RING AROUND A PANEL: a second surface inside it ===
-   Measured on a live screenshot (menu over the chat, background luminance 92):
-     x 787..796 -> 62.6    a perfectly flat 10px band   (sharpness 0.10)
-     x 798..803 -> 37.6    the panel itself             (sharpness 0.05)
-   62.6 is exactly one 0.34 veil over the background; 37.6 is another ~0.38
-   layer on top of that. So the frost layer and the surface the user reads as
-   "the border" are TWO boxes: the frost covers the popup element, and an inner
-   container inside it paints the darker panel ~10px further in. The 10px of
-   frost hanging outside that inner panel is the "extra blur past the border,
-   slightly lighter than the panel".
-   Fix: nothing inside a popup may paint its own surface. Only the frost layer
-   paints, across the whole popup box, so the two boxes collapse into one and
-   there is no band left to be lighter. The veil is raised to 0.58 to keep the
-   panel exactly as dark as before (was 0.34 over a 0.38 inner layer). */
-#app-mount [role="menu"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
-#app-mount [role="listbox"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
-#app-mount [class*="submenu_"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
-#app-mount [class*="popout_"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]) {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* One level deeper, in case the panel sits inside a positioning wrapper
-   (`popup > wrapper > .menu_...`). Only container-ish names, so inputs, search
-   bars and item backgrounds are never touched. */
-#app-mount :is([role="menu"], [role="listbox"], [class*="submenu_"], [class*="popout_"]) > * > :is([class*="menu_"], [class*="scroller_"]) {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* === POPUP EDGE: THE HAIRLINE IS NOT PAINTED ===
-   Everything that can draw a line has already been cleared (border, box-shadow,
-   outline, background, filter, border-image) on the popup, on every descendant
-   and on the whole Toolbox subtree, and a software render of this exact
-   structure shows no line at all. What is left is the edge of the rounded
-   `backdrop-filter` layer itself: the compositor blends that surface with the
-   page at partial alpha along the boundary, so for one pixel the *unfiltered*
-   desktop shows through. That is a hole, not a line, so no border/shadow reset
-   could ever remove it.
-   The cure is to stop the antialiasing from blending panel-tone against the
-   bright desktop: a 1px stroke in the panel's own tone sits on both sides of the
-   boundary, so the boundary pixels resolve dark-on-dark and the rim cannot
-   appear. It reads as an intentional popup edge, not an artifact.
-
-   NO DROP SHADOW HERE. 1.7.3 also carried `0 8px 24px rgba(0,0,0,.35)` for
-   depth, and that is the "extra blur past the border": measured on a live
-   screenshot, luminance just outside a panel edge was 36.7 and rose to 69.7
-   over the next 60px — a soft dark haze clinging to every popup, lighter than
-   the near-black panel and easy to read as leftover frost. Popups are flat
-   now; only the two 1px strokes remain, and both are edge pixels. */
-#app-mount :is([role="menu"], [role="listbox"],
-               [class*="popout_"], [class*="submenu_"], [class*="dropdown_"],
-               [class*="messagesPopout"], [class*="recentMentionsPopout"],
-               [class*="threadsPopout"], [class*="insightsPopout"]) {
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.30),
-    0 0 0 1px rgba(0, 0, 0, 0.55) !important;
+/* === THE LIGHTER RING AROUND A PANEL, SOLVED WITHOUT KNOWING THE DOM ===
+   Measured on a live screenshot (menu over the chat, background 92):
+     x 787..796 -> 62.6   flat 10px band   (sharpness 0.10)
+     x 798..803 -> 37.6   the panel        (sharpness 0.05)
+   62.6 = 92 x (1 - 0.34), i.e. nothing but this frost layer's veil.
+   37.6 = 62.6 x (1 - 0.38), i.e. one more ~0.38 layer painted 10px further in.
+   So an inner container paints the panel inside the popup's box, and the outer
+   10px of frost has no such layer over it - which is exactly the band that is
+   slightly lighter than the panel. Removing that inner layer failed because it
+   is nested deeper than any safe selector reaches.
+   Instead, give the frost layer itself a 10px inset ring at 0.38 in its own
+   tone: the band then carries the same darkening as the panel and the two
+   surfaces read as one. Nothing is drawn as a border - the ring is inside the
+   surface, matches its colour, and cannot be seen as a line. */
+#app-mount :is([role="menu"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"])::after {
+  box-shadow: inset 0 0 0 10px rgba(0, 0, 0, 0.38) !important;
 }
