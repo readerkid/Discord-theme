@@ -1,10 +1,14 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.7
+ * @version 1.7.8
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.8 — Panel lightened a lot on request (veil 0.59 -> 0.22). The halo was
+ *         not the layer 1.7.7 removed, so this build outlines every frost
+ *         layer in a naming colour: one screenshot then says which selector
+ *         owns the halo instead of guessing again.
  * 1.7.7 — The halo was a SECOND frost layer on the wrapper a popup is mounted
  *         in, ~10px larger than the panel, so its uncovered rim was the band.
  *         A wrap container (contains a popup, is not a popup) no longer paints
@@ -788,7 +792,7 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.59) !important;
+  background-color: rgba(0, 0, 0, 0.22) !important;
 }
 
 /* === ONE FROST LAYER PER POPUP ===
@@ -817,3 +821,26 @@
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* === PROBE (temporary, remove once the halo is named) ===
+   Every rule above that paints a frost layer also sets `content`, so only real
+   frost layers have a ::after to outline. A 2px ring therefore appears exactly
+   on each layer's box, in a colour that names the selector that owns it:
+
+     red      [role="menu"]        green    [class*="popout_"]
+     blue     [class*="menu_"]     magenta  [class*="submenu_"]
+     cyan     [class*="dropdown_"] yellow   [class*="layer_"]
+     orange   [class*="stack_"]    white    [class*="wrapper_"]
+
+   A menu is surrounded by a halo, so the ring that sits on the halo's OUTER
+   edge names the layer painting it. If no ring appears out there, the halo is
+   not one of ours at all - it is an element-level backdrop-filter/background
+   from ClearVision, and I target that instead. */
+#app-mount [role="menu"]::after        { outline: 2px solid #ff0000 !important; }
+#app-mount [class*="menu_"]::after     { outline: 2px solid #0000ff !important; }
+#app-mount [class*="popout_"]::after   { outline: 2px solid #00ff00 !important; }
+#app-mount [class*="submenu_"]::after  { outline: 2px solid #ff00ff !important; }
+#app-mount [class*="dropdown_"]::after { outline: 2px solid #00ffff !important; }
+#app-mount [class*="layer_"]::after    { outline: 2px solid #ffff00 !important; }
+#app-mount [class*="stack_"]::after    { outline: 2px solid #ff8000 !important; }
+#app-mount [class*="wrapper_"]::after  { outline: 2px solid #ffffff !important; }
