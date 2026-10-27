@@ -1,10 +1,14 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.4
+ * @version 1.7.5
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.5 — Killed the lighter ring around popups. The frost layer covered the
+ *         popup element while an inner container painted the darker panel ~10px
+ *         further in, so 10px of frost hung outside the panel edge. Nothing
+ *         inside a popup paints a surface now; the frost layer is the only one.
  * 1.7.4 — No drop shadow on popups. 1.7.3 added `0 8px 24px rgba(0,0,0,.35)`
  *         for depth; on a frosted popup that soft shadow reads as extra haze
  *         past the border (measured: 36.7 -> 69.7 luminance over the 60px
@@ -775,15 +779,37 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.34) !important;
+  background-color: rgba(0, 0, 0, 0.58) !important;
 }
 
-/* Nested popups keep their slightly denser veil on the layer. */
-#app-mount [role="menu"] [role="menu"]::after,
-#app-mount [role="menu"] [class*="submenu_"]::after,
-#app-mount [role="menu"] [class*="dropdown_"]::after,
-#app-mount [role="listbox"] [class*="submenu_"]::after {
-  background-color: rgba(0, 0, 0, 0.42) !important;
+/* === THE LIGHTER RING AROUND A PANEL: a second surface inside it ===
+   Measured on a live screenshot (menu over the chat, background luminance 92):
+     x 787..796 -> 62.6    a perfectly flat 10px band   (sharpness 0.10)
+     x 798..803 -> 37.6    the panel itself             (sharpness 0.05)
+   62.6 is exactly one 0.34 veil over the background; 37.6 is another ~0.38
+   layer on top of that. So the frost layer and the surface the user reads as
+   "the border" are TWO boxes: the frost covers the popup element, and an inner
+   container inside it paints the darker panel ~10px further in. The 10px of
+   frost hanging outside that inner panel is the "extra blur past the border,
+   slightly lighter than the panel".
+   Fix: nothing inside a popup may paint its own surface. Only the frost layer
+   paints, across the whole popup box, so the two boxes collapse into one and
+   there is no band left to be lighter. The veil is raised to 0.58 to keep the
+   panel exactly as dark as before (was 0.34 over a 0.38 inner layer). */
+#app-mount [role="menu"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
+#app-mount [role="listbox"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
+#app-mount [class*="submenu_"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]),
+#app-mount [class*="popout_"] > :is([class*="scroller_"], [class*="flexible_"], [class*="menu_"], [class*="list_"], [class*="content_"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* One level deeper, in case the panel sits inside a positioning wrapper
+   (`popup > wrapper > .menu_...`). Only container-ish names, so inputs, search
+   bars and item backgrounds are never touched. */
+#app-mount :is([role="menu"], [role="listbox"], [class*="submenu_"], [class*="popout_"]) > * > :is([class*="menu_"], [class*="scroller_"]) {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 /* === POPUP EDGE: THE HAIRLINE IS NOT PAINTED ===
