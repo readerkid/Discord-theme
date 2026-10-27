@@ -1,10 +1,18 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.3
+ * @version 1.8.4
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.4 — The halo is `submenuPaddingContainer_c1e9c4`, a wrapper with 9px of
+ *         padding around the menu (Discord's hover bridge). The frost ::after
+ *         lives on the inner `.submenu_c1e9c4.menu_c1e9c4` and inset:0 resolves
+ *         to that element's padding box, so the wrapper's padding was a ring of
+ *         bare page the layer could never reach. Its class name contains
+ *         neither menu_ nor submenu_, so no selector here had ever matched it.
+ *         Padding zeroed: the frost layer is the popup's edge, and popups drop
+ *         the 9px they were inflated by.
  * 1.8.3 — The ring is the popup's own transparent border. `inset: 0` on the
  *         frost ::after resolves to the PADDING box, so a transparent border
  *         (Discord's hover bridge on submenu wrappers) is a 9px ring of bare
@@ -613,6 +621,32 @@
 #app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* === THE HALO IS A WRAPPER WITH PADDING, NOT THE MENU ===
+   Real DOM, straight out of the menu:
+
+     <div class="submenuPaddingContainer_c1e9c4">            <- 9px padding, no frost
+       <div class="submenu_c1e9c4 menu_c1e9c4" role="menu">  <- frost layer here
+         <div class="scroller_c1e9c4 ...">items</div>
+       </div>
+     </div>
+
+   The frost ::after lives on the inner menu, and `inset: 0` resolves to THAT
+   element's padding box. So the wrapper's padding - the hover bridge Discord
+   keeps between a parent menu and its submenu - is a ring of bare page between
+   the panel and the popup's outer edge. That is the halo: sharp on both sides
+   because it is a box edge, not a glow, and it is also why popups have been
+   ~9px fatter than a normal menu the whole time.
+
+   It also explains why nothing else worked: the wrapper's class is
+   "submenuPaddingContainer_c1e9c4", which contains neither "menu_" nor
+   "submenu_", so no popup selector in this file ever matched it.
+
+   Zeroing the padding puts the wrapper's box on the menu's box, so the frost
+   layer IS the popup's edge and the ring has nowhere to sit. */
+#app-mount :is([class*="submenuPaddingContainer"], [class*="menuPaddingContainer"]) {
+  padding: 0 !important;
 }
 
 /* === THE RING IS THE POPUP'S OWN TRANSPARENT BORDER ===
