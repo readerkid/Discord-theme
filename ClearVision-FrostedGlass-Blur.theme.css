@@ -350,7 +350,6 @@
 /* Make the settings sidebar more readable without darkening the main panel. */
 #app-mount :is(.sidebar__409aa, .contentHeader_e9e3ed) {
   background: rgba(0, 0, 0, 0.22) !important;
-  background-color: rgba(0, 0, 0, 0.40) !important;
   background-image: none !important;
 }
 
@@ -803,5 +802,5 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
-  background-color: rgba(0, 0, 0, 0.22) !important;
+  background-color: rgba(0, 0, 0, 0.40) !important;
 }
