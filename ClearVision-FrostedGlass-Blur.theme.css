@@ -1,9 +1,53 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.2.0
+ * @version 1.7.3
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
+ *
+ * 1.7.3 — Popup hairline solved. It was the antialiased boundary of the rounded
+ *         `backdrop-filter` surface, letting unfiltered desktop through for one
+ *         pixel (invisible in a software render, present on the GPU). Popups are
+ *         now a single surface, with a 1px panel-tone stroke on both sides of
+ *         that boundary so it resolves dark-on-dark.
+ * 1.7.2 — Popup rim flattened. The Toolbox drew a 1px border/shadow rim on its
+ *         menu wrappers, outside the frost layer, which read as a hard outline
+ *         around a blurred panel. The toolbox reset now clears box-shadow,
+ *         outline and border-color as well as backgrounds.
+ * 1.7.1 — Root cause of the "popouts are never blurred" saga: those popups come
+ *         from the Toolbox, so they live under `[id*="vc-toolbox"]`. A toolbox
+ *         reset (and, before it, a `:not(:where([id*="vc-toolbox"] *))`) was
+ *         neutralising them every time. The element-level toolbox reset is kept
+ *         (its scrolling panel must not be a backdrop root) but no longer
+ *         touches ::after. Frost radius is a literal, not var().
+ * 1.7.0 — Popout-of-a-popout blur finally works. Verified with a live DOM probe
+ *         that Discord renders a submenu INSIDE its parent menu
+ *         (`.submenu_c1e9c4.menu_c1e9c4`), so a blurred parent made the child
+ *         unable to sample the page. No popup element carries backdrop-filter
+ *         any more; frost lives on a ::after layer with a plain selector and a
+ *         literal radius (var() inside that backdrop-filter silently produced
+ *         no blur at all). Popups use 24px because --cv-blur alone is
+ *         imperceptible over busy chat content.
+ * 1.6.0 — Popup frost moved from backdrop-filter on the popup element to an
+ *         isolated ::after layer. backdrop-filter makes an element a *backdrop
+ *         root* for its descendants, which is why submenus (popout-of-a-popout)
+ *         could never blur the page behind them. Nested popups now frost
+ *         correctly, and the [role="dialog"] reset can no longer strip popup
+ *         blur (it only matches elements, not ::after).
+ * 1.5.0 — Popout-of-a-popout (submenus, nested menus, dropdowns opened from a
+ *         popout) are now blurred too. The old blanket exclusion of nested
+ *         menus left them as a see-through veil over razor-sharp chat content.
+ *         Toolbox's subtree stays blur-free on purpose.
+ * 1.4.0 — Custom profile text tokens restored (ClearVision's brighter
+ *         --text-default/--text-muted made profile labels and timestamps read
+ *         wrong). Command autocomplete: every row/badge layer that painted its
+ *         own dark fill is cleared, so rows no longer show darker boxes around
+ *         the text.
+ * 1.3.0 — Custom user profile themes (banner, gradient, buttons, role pills,
+ *         text colors) are no longer flattened. The blanket "strip every
+ *         background inside .user-profile-*" rule is gone; our overrides are
+ *         now scoped with :not(.custom-user-profile-theme), matching how
+ *         ClearVision itself guards those surfaces.
  */
 
 @import url("https://clearvision.github.io/ClearVision-v7/main.css");
@@ -171,18 +215,35 @@
 #app-mount :is([role="menu"], [role="tooltip"], [class*="popout_"], [class*="tooltip_"], [class*="messagesPopoutWrap_"], [class*="recentMentionsPopout_"]) {
   background: rgba(0, 0, 0, 0.25) !important;
   background-image: none !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  /* No border: the frost layer is an absolutely positioned ::after that covers
+     the padding box, so a bordered popup leaves a sharp unblurred hairline ring
+     around the panel. */
+  border: none !important;
+  border-color: transparent !important;
   box-shadow: none !important;
 }
 
-#app-mount :is(.vc-card-base, .vc-addon-card, .vc-settings-quickActions-card, [class*="card_"], [class*="itemCard_"], [class*="activityCard_"], [class*="activityContainer_"]) {
+/* Some popup skins draw their "ring" with a ::before layer (a border or an inset
+   box-shadow). That ring lands outside the frost layer, so it reads as a hard
+   outline around an otherwise blurred panel. Strip border/shadow/outline there.
+   Tooltips are excluded on purpose — their arrow is usually a border triangle. */
+#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"])::before {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Cards everywhere EXCEPT inside user profiles: a profile's "Games I Like" /
+   activity cards are also .card__… classes, and repainting them them makes a
+   custom profile look like a stack of plain boxes. */
+#app-mount :is(.vc-card-base, .vc-addon-card, .vc-settings-quickActions-card, [class*="card_"], [class*="itemCard_"], [class*="activityCard_"], [class*="activityContainer_"]):not(:is(.user-profile-popout *, .user-profile-modal-v2 *)) {
   background-color: rgba(0, 0, 0, 0.18) !important;
   background-image: none !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   box-shadow: none !important;
 }
 
-#app-mount :is(.vc-card-base, .vc-addon-card, .vc-settings-quickActions-card, [class*="card_"], [class*="itemCard_"], [class*="activityCard_"], [class*="activityContainer_"]):hover {
+#app-mount :is(.vc-card-base, .vc-addon-card, .vc-settings-quickActions-card, [class*="card_"], [class*="itemCard_"], [class*="activityCard_"], [class*="activityContainer_"]):not(:is(.user-profile-popout *, .user-profile-modal-v2 *)):hover {
   background-color: rgba(0, 0, 0, 0.12) !important;
 }
 
@@ -284,17 +345,10 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Blur behind portaled popups (context menus, message popout, user popout). */
-#app-mount :is([role="menu"], [class*="popout_"], [class*="messagesPopoutWrap_"], [class*="recentMentionsPopout_"]) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
-}
-
-/* Blur behind body-ported popups (popout-of-a-popout, etc.). */
-:is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="dropdown_"], [class*="submenu_"], [class*="insightsPopout"]) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
-}
+/* Blur behind portaled popups (context menus, message popout, user popout) is
+   NOT applied here. See "FROST ARCHITECTURE FOR POPUPS" at the bottom: blur must
+   live on a ::after layer, never on the popup element itself, or nested popups
+   can't see the page behind them. */
 
 /* Body-ported popups also need transparent backgrounds */
 
@@ -310,14 +364,13 @@
   background-image: none !important;
 }
 
-/* Nested popup surfaces (a popout/menu inside a menu) are intentionally unblurred
-   — blurring them pins the inner popup to the outer one and clips it. Without
-   blur they need a near-opaque background to stay readable. Applies everywhere,
-   including the toolbox subtree (this rule's higher specificity beats the
-   toolbox background:transparent strip). */
+/* Nested popup surfaces (a popout/menu inside a menu, e.g. Toolbox → Themes or
+   a submenu) need their own surface: they overlap live content, so they get a
+   slightly stronger veil than a top-level menu. Blur is applied later, after the
+   dialog reset, so it survives (see the nested re-blur block at the end). */
 #app-mount [role="menu"] [role="menu"],
 #app-mount :is([role="menu"], [role="listbox"]) :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"]) {
-  background-color: rgba(0, 0, 0, 0.5) !important;
+  background-color: rgba(0, 0, 0, 0.4) !important;
   background-image: none !important;
 }
 
@@ -333,6 +386,12 @@
   background-image: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+  /* The toolbox draws a 1px rim (border/shadow) around its menu wrappers. That
+     rim lands outside the frost ::after layer, so it reads as a hard outline
+     around an otherwise blurred panel. Flat surfaces only here. */
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: transparent !important;
 }
 #app-mount [id*="vc-toolbox"] [role="menu"],
 #app-mount [id*="vc-toolbox"] [class*="submenu_"],
@@ -382,13 +441,9 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Re-blur message/pinned popouts that the dialog reset above would strip.
-   The pinned-messages popout renders as a [role="dialog"] descendant, so it
-   needs its own exception here (like the modal surfaces above). */
-#app-mount :is([class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"]) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
-}
+/* Message/pinned popouts and message popouts inside dialogs: their frost also
+   comes from the ::after layer now (see FROST ARCHITECTURE below), which the
+   [role="dialog"] reset cannot strip because it only matches elements. */
 #app-mount :is(.user-profile-popout, .user-profile-modal-v2) {
   -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
   backdrop-filter: blur(var(--cv-blur)) !important;
@@ -431,30 +486,21 @@
   background-image: none !important;
 }
 
-/* New autocomplete UI (row class is .clickable_, not .option_; band layers are
-   .base_ and .wrapper_): clear every one of those that paints a dark or colored
-   strip over the frosted surface so the popup stays one uniform panel. */
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="clickable_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="base_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="wrapper_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="categorySection_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="listItems_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="infoWrapper_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="usageWrapper_"] {
+/* Row-level layers inside the autocomplete each paint their own dark fill:
+   the row wrapper/band layers, the per-row info + usage text blocks, and the
+   right-hand "Built-In" / "TTS" / server-name tags. Discord renames those
+   classes every few builds, so rather than chase them we clear the ENTIRE
+   listbox subtree — the popup stays one uniform frosted panel, with no
+   leftover darker boxes around the text.
+
+   The popup SURFACE itself (the [class*="autocomplete"] element) keeps the
+   background + backdrop-filter set above; only its children are cleared. */
+#app-mount [class*="autocomplete"] * {
+  background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
-}
-
-/* No selected/hover highlight; the whole list stays a uniform frosted panel. */
-
-/* The per-row info/usage text blocks (tailwind-like text-*/normal_ classes and
-   .usageWrapper_) also paint their own rgba(0,0,0,0.28) on top of the frosted
-   popup, doubling the darkening exactly behind the text. Strip those too. */
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="text-"][class*="/normal_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="text-"][class*="/medium_"],
-#app-mount [class*="autocomplete"] [class*="autocompleteInner"] [class*="usageWrapper_"] {
-  background-color: transparent !important;
-  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Server/user settings content AND nav panes were only translucent (unblurred
@@ -466,17 +512,110 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Re-blur TOP-LEVEL menus after the dialog reset. The dialog reset below strips
-   backdrop-filter from [role="dialog"] * (equal specificity, later source) which
-   otherwise wipes menu blur whenever a menu lives inside a dialog layer. Only the
-   top-level [role="menu"] is blurred: nested submenus (a menu inside a menu) stay
-   clear so they are never pinned/clipped by a blurred ancestor. */
+/* Top-level menu surface. */
 #app-mount [role="menu"]:not([role="menu"] [role="menu"]) {
   background-color: rgba(0, 0, 0, 0.35) !important;
   background-image: none !important;
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
 }
+
+/* Popout-of-a-popout / submenu surfaces: a stronger veil than a top-level menu,
+   because they overlap live content. Blur comes from the ::after layer too. */
+#app-mount :is(
+  [role="menu"] [role="menu"],
+  [role="menu"] :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"]),
+  [role="listbox"] :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"]),
+  [class*="messagesPopout"] :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"]),
+  [class*="recentMentionsPopout"] :is([class*="popout_"], [class*="submenu_"], [class*="dropdown_"])
+) {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  background-image: none !important;
+}
+
+/* === FROST ARCHITECTURE FOR POPUPS ===
+   WHY blurring the popup ELEMENT cannot work: an element carrying
+   backdrop-filter becomes the *backdrop root* for everything inside it. Discord
+   renders a submenu INSIDE its parent menu (verified: the submenu element is
+   `.submenu_c1e9c4.menu_c1e9c4` with role="menu", a descendant of the parent's
+   `[role="menu"]`). A blurred parent therefore leaves the submenu with only the
+   parent's own transparent layers as its backdrop — and outside the parent's
+   box, no backdrop at all. Result: submenus stayed razor sharp no matter which
+   selectors were added.
+
+   FIX (verified working): no popup element may carry backdrop-filter. Each
+   popup instead gets a ::after layer that paints the frost above the popup's
+   translucent background and below its text.
+
+   Two rules that matter, learned the hard way:
+     1. Never add `isolation`, `filter` or `opacity` to the popup — each of them
+        re-creates a backdrop root and the ::after layer then samples only the
+        popup's own background, i.e. no visible blur.
+     2. Keep the selector shape simple. Over-wrapped `:is()/:not()` chains around
+        this rule silently stopped matching in practice. */
+#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Frost layer. IMPORTANT: the blur radius is a LITERAL, not a var().
+   Every build that used var(--…) inside this backdrop-filter produced no blur
+   at all, while the literal-24px probe visibly blurred — so this rule keeps the
+   exact form that was verified working. To tune it, edit the numbers below.
+   The layer sits exactly on the padding box (`inset: 0`); a negative inset made
+   the blur spill 1px outside the panel, which showed as a light halo. */
+[role="menu"]::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+/* Same layer for other popup types. Discord's submenus are themselves
+   role="menu" (`.submenu_c1e9c4.menu_c1e9c4`), so they are already covered by
+   the rule above; these are the remaining popup surfaces. */
+[class*="submenu_"]::after,
+[class*="dropdown_"]::after,
+[class*="popout_"]::after,
+[class*="messagesPopout"]::after,
+[class*="recentMentionsPopout"]::after,
+[class*="threadsPopout"]::after,
+[class*="insightsPopout"]::after,
+[role="listbox"]::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+[class*="tooltip_"]::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* NOTE (root cause of "popouts never blur"): the popups being complained about
+   are opened from Vencord/Equicord's Toolbox, so they live inside an element
+   whose id contains "vc-toolbox". Two rules used to neutralise them:
+     • `:not(:where([id*="vc-toolbox"] *))` on the frost rule (1.6.x) — excluded
+       them selectors-level, so the ::after never existed there.
+     • a `backdrop-filter: none` reset on their ::after (1.7.0) — the rule killed
+       the layer even though it matched.
+   The Element-level reset further down is what the toolbox actually needs (its
+   scrolling panel must not be a backdrop root, or nested popouts get clipped).
+   A `*` element reset cannot match a pseudo-element, so the ::after frost layer
+   is unaffected by it. Do NOT re-add a toolbox ::after reset. */
 
 /* Carousel modal safety (belt and suspenders) */
 .carouselModal_d3a6f0,
@@ -485,39 +624,53 @@
   backdrop-filter: none !important;
 }
 
-/* ClearVision sets wallpaper via ::before — kill it */
-:is(.user-profile-popout, .user-profile-modal-v2)::before,
-:is(.user-profile-popout, .user-profile-modal-v2)::after {
+/* === CUSTOM USER PROFILE THEMES (Nitro "Edit Profile" themes) ===
+   ClearVision-v7 guards every profile background it paints with
+   :not(.custom-user-profile-theme) so it backs off when the user has a custom
+   profile theme. Our rules must do the same.
+
+   An earlier "nuclear option" here (background/background-color/background-image
+   forced transparent/none !important on *every* descendant of the profile root)
+   did not: it stripped the banner image, the profile's own gradient/backdrop,
+   the Add Friend/DM button fills and the role-pill fills. The result was a
+   flat, wallpaper-tinted profile where every button and pill showed up as an
+   empty outlined rectangle and the custom background never rendered.
+
+   Rule of thumb: we may add blur, we may not repaint a custom profile. */
+
+/* Default (non-custom) profiles only: hide ClearVision's photo backdrop and let
+   the backdrop-filter below provide the frost instead of a crisp wallpaper. */
+:is(.user-profile-popout, .user-profile-modal-v2):not(.custom-user-profile-theme)::before,
+:is(.user-profile-popout, .user-profile-modal-v2):not(.custom-user-profile-theme)::after {
   display: none !important;
 }
 
-/* Nuclear option: strip backgrounds from ALL descendants */
-:is(.user-profile-popout, .user-profile-modal-v2) *,
-:is(.user-profile-popout, .user-profile-modal-v2) *::before,
-:is(.user-profile-popout, .user-profile-modal-v2) *::after {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
+/* Custom profile themes: hands off. Native banner, gradient, buttons, role
+   pills, activity cards and text colors all keep Discord's own styling — no
+   background/border/box-shadow rules of ours touch them. */
+
+/* Text tokens inside custom profile themes.
+   ClearVision redefines --text-default / --text-muted from --normal-text /
+   --muted-text (#f4f4f6 / #c7c7cf in dark), which is brighter than Discord's
+   stock palette (#dbdee1 / #b5bac1). Inside a custom profile that reads as
+   "wrong text colour" — timestamps, "Member Since", role labels and the bio all
+   come out too white. Restore Discord's own values on the profile root only.
+   :where() keeps specificity low so any colour Discord computes itself for a
+   custom theme still wins where it sets one. */
+:where(.theme-dark, .theme-darker, .theme-midnight) :is(.user-profile-popout, .user-profile-modal-v2).custom-user-profile-theme {
+  --text-default: #dbdee1;
+  --text-muted: #b5bac1;
+  --text-subtle: #b5bac1;
+  --text-strong: #f2f3f5;
+  --text-link: #00a8fc;
 }
 
-/* Restore backgrounds for elements that need them */
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="banner"] {
-  background-color: inherit !important;
-}
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="avatar"] {
-  background-color: transparent !important;
-}
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="button"] {
-  background-color: rgba(0, 0, 0, 0.10) !important;
-}
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="button"]:hover {
-  background-color: rgba(0, 0, 0, 0.18) !important;
-}
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="section_"] {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-}
-:is(.user-profile-popout, .user-profile-modal-v2) [class*="card__"] {
-  background-color: rgba(0, 0, 0, 0.08) !important;
+:where(.theme-light) :is(.user-profile-popout, .user-profile-modal-v2).custom-user-profile-theme {
+  --text-default: #313338;
+  --text-muted: #5c5e66;
+  --text-subtle: #5c5e66;
+  --text-strong: #060607;
+  --text-link: #006ce7;
 }
 
 /* Vencord settings items: transparent backgrounds so overlay blur shows */
@@ -525,4 +678,129 @@
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* Candidate fix: a *pseudo-element* inside the toolbox can paint the rim too —
+   the toolbox reset only clears real elements. Clear border/shadow/outline on
+   every toolbox pseudo (does not touch our frost layer's blur). */
+#app-mount [id*="vc-toolbox"] *::before,
+#app-mount [id*="vc-toolbox"] *::after {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: transparent !important;
+}
+
+/* A 1px "gradient border" pseudo survives every border / shadow / outline reset,
+   because it is painted with a BACKGROUND, not a border. That is why clearing
+   border-color, box-shadow, outline and `filter` on the popup and every element
+   inside the toolbox changed nothing: the ring is a background-painted pseudo
+   hugging the panel edge. Strip backgrounds from popup pseudos. Our own frost
+   layer is blur-only (no background), so it is unaffected. */
+[role="menu"]::before,
+[role="menu"]::after,
+[class*="popout_"]::before,
+[class*="popout_"]::after,
+[class*="submenu_"]::before,
+[class*="submenu_"]::after,
+[class*="dropdown_"]::before,
+[class*="dropdown_"]::after {
+  background: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+/* Last remaining paint source that survives the resets above: ClearVision styles
+   surfaces with `filter: drop-shadow(...)` rather than box-shadow. A drop-shadow
+   on ANY child of the panel (an inner scroller, an item wrapper) paints a bright
+   1px halo along the panel edge — and unlike border/shadow/outline it is not
+   cleared by the toolbox reset, and it is not visible to the background rules.
+   Clearing filter on popup descendants (and on the toolbox subtree) removes the
+   halo. The frost layer sits on the popup element itself, not on these children,
+   so its backdrop sampling is unaffected. */
+#app-mount [id*="vc-toolbox"] *,
+#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"]) * {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/* The Toolbox ROOT element itself (`[id*="vc-toolbox"]`) was never covered: the
+   pseudo strip above matches descendants (`*::before`), and the root's own
+   ::after reset was deleted in 1.7.1. If the root is the menu surface wrapper,
+   its ::before can paint a 1px frame exactly at the panel edge — which is why
+   no rule on the menus, and no rule on their descendants, ever removed it. */
+#app-mount [id*="vc-toolbox"]::before,
+#app-mount [id*="vc-toolbox"]::after {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+  border-image: none !important;
+  background: none !important;
+  background-image: none !important;
+  filter: none !important;
+}
+
+/* border-image is drawn in the border area and survives `border-color:
+   transparent`; make sure nothing in the popup stack has one. */
+#app-mount [id*="vc-toolbox"] *,
+#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"]) {
+  border-image: none !important;
+}
+
+/* === SINGLE-SURFACE POPUPS ===
+   Until now every popup was TWO rounded layers stacked on the exact same
+   boundary: the panel's own background, and the frost ::after sitting on top of
+   it. Two independently antialiased rounded edges on one boundary leave a light
+   seam between them. That is why clearing border, box-shadow, outline,
+   background, filter and border-image on the popup, its children and the whole
+   toolbox subtree changed nothing: nothing is being *drawn* there. The seam is
+   the sliver where one edge has ended and the other has not.
+   Fix: there is only one surface now. The popup element's own background becomes
+   transparent and the frost ::after paints BOTH the veil and the blur, so the
+   rounded edge exists once instead of twice. */
+#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+[role="menu"]::after,
+[class*="submenu_"]::after,
+[class*="dropdown_"]::after,
+[class*="popout_"]::after,
+[class*="messagesPopout"]::after,
+[class*="recentMentionsPopout"]::after,
+[class*="threadsPopout"]::after,
+[class*="insightsPopout"]::after,
+[role="listbox"]::after {
+  background-color: rgba(0, 0, 0, 0.34) !important;
+}
+
+/* Nested popups keep their slightly denser veil on the layer. */
+#app-mount [role="menu"] [role="menu"]::after,
+#app-mount [role="menu"] [class*="submenu_"]::after,
+#app-mount [role="menu"] [class*="dropdown_"]::after,
+#app-mount [role="listbox"] [class*="submenu_"]::after {
+  background-color: rgba(0, 0, 0, 0.42) !important;
+}
+
+/* === POPUP EDGE: THE HAIRLINE IS NOT PAINTED ===
+   Everything that can draw a line has already been cleared (border, box-shadow,
+   outline, background, filter, border-image) on the popup, on every descendant
+   and on the whole Toolbox subtree, and a software render of this exact
+   structure shows no line at all. What is left is the edge of the rounded
+   `backdrop-filter` layer itself: the compositor blends that surface with the
+   page at partial alpha along the boundary, so for one pixel the *unfiltered*
+   desktop shows through. That is a hole, not a line, so no border/shadow reset
+   could ever remove it.
+   The cure is to stop the antialiasing from blending panel-tone against the
+   bright desktop: a 1px stroke in the panel's own tone sits on both sides of the
+   boundary, so the boundary pixels resolve dark-on-dark and the rim cannot
+   appear. It reads as an intentional popup edge, not an artifact. */
+#app-mount :is([role="menu"], [role="listbox"],
+               [class*="popout_"], [class*="submenu_"], [class*="dropdown_"],
+               [class*="messagesPopout"], [class*="recentMentionsPopout"],
+               [class*="threadsPopout"], [class*="insightsPopout"]) {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.30),
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
