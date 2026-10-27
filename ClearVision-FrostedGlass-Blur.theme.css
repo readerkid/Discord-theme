@@ -1,10 +1,15 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.4
+ * @version 1.8.5
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.5 — The leftover band is padding on the whole popup chain, not just the
+ *         wrapper: submenuPaddingContainer (9px), the menu element, and the
+ *         scroller each add their own. Item text sat 29px inside the panel
+ *         edge against Discord's 19px. All three zeroed, wrapper child margin
+ *         too, so the rows fill the panel like a native menu.
  * 1.8.4 — The halo is `submenuPaddingContainer_c1e9c4`, a wrapper with 9px of
  *         padding around the menu (Discord's hover bridge). The frost ::after
  *         lives on the inner `.submenu_c1e9c4.menu_c1e9c4` and inset:0 resolves
@@ -647,6 +652,30 @@
    layer IS the popup's edge and the ring has nowhere to sit. */
 #app-mount :is([class*="submenuPaddingContainer"], [class*="menuPaddingContainer"]) {
   padding: 0 !important;
+}
+
+/* The wrapper is only the first of three boxes that add space between the panel
+   edge and the items. The chain, from the live DOM:
+
+     .submenuPaddingContainer_c1e9c4       9px padding   (hover bridge)
+       .submenu_c1e9c4.menu_c1e9c4         own padding   (ClearVision/Discord)
+         .scroller_c1e9c4                  own padding + scrollbar gutter
+           .item_c1e9c4                    the rows
+
+   Measured from a screenshot: the item text sits 29px inside the panel edge,
+   where Discord's own menu puts it at 19px. That extra band of empty panel is
+   the "padding" that is still visible. The frost layer only ever covers the
+   menu element, so anything the wrapper or the menu adds around the content
+   reads as a rim inside the panel.
+
+   All three are zeroed, and the wrapper's child margin too, so the rows fill
+   the panel the way Discord's own menus do. If it ends up too tight, put a
+   small value back here - this is the only place popup padding is set. */
+#app-mount :is([class*="submenuPaddingContainer"], [class*="menuPaddingContainer"], [class*="submenu_c1e9c4"], [class*="scroller_c1e9c4"]) {
+  padding: 0 !important;
+}
+#app-mount [class*="submenuPaddingContainer"] > * {
+  margin: 0 !important;
 }
 
 /* === THE RING IS THE POPUP'S OWN TRANSPARENT BORDER ===
