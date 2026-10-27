@@ -1,10 +1,14 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.5
+ * @version 1.8.6
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.6 — Flush was too tight. Wrapper stays at 0 (that band was the rim), the
+ *         menu and scroller take --cv-popup-pad (default 4px) instead of their
+ *         own native values, so the inset is one number: 0 flush, 4 this, 8
+ *         like Discord's own menus.
  * 1.8.5 — The leftover band is padding on the whole popup chain, not just the
  *         wrapper: submenuPaddingContainer (9px), the menu element, and the
  *         scroller each add their own. Item text sat 29px inside the panel
@@ -130,6 +134,11 @@
      wallpaper through, so it picks up the wallpaper's colour instead of
      reading as a flat grey. */
   --cv-panel: rgba(70, 74, 84, 0.55);
+
+  /* POPUP PADDING. Space between the panel edge and the rows. 0 is flush and
+     reads as too tight; Discord's own menus are around 8px per box, which is
+     what made the popup feel over-padded here; 4 is the middle. */
+  --cv-popup-pad: 4px;
 
   /* Declared for parity with the original ClearVision FrostedGlass theme.
      Current ClearVision-v7 main.css does not reference them (inert). */
@@ -668,11 +677,16 @@
    menu element, so anything the wrapper or the menu adds around the content
    reads as a rim inside the panel.
 
-   All three are zeroed, and the wrapper's child margin too, so the rows fill
-   the panel the way Discord's own menus do. If it ends up too tight, put a
-   small value back here - this is the only place popup padding is set. */
-#app-mount :is([class*="submenuPaddingContainer"], [class*="menuPaddingContainer"], [class*="submenu_c1e9c4"], [class*="scroller_c1e9c4"]) {
+   The wrapper stays at zero because that band is the one that read as a rim.
+   The menu and the scroller get --cv-popup-pad instead of their own values:
+   flush (0) looked too tight, native read as over-padded, 4px sits between and
+   is the only place popup padding is set now. The wrapper's child margin is
+   zeroed too, so a margin cannot put the band back. */
+#app-mount :is([class*="submenuPaddingContainer"], [class*="menuPaddingContainer"]) {
   padding: 0 !important;
+}
+#app-mount :is([class*="submenu_c1e9c4"], [class*="scroller_c1e9c4"]) {
+  padding: var(--cv-popup-pad) !important;
 }
 #app-mount [class*="submenuPaddingContainer"] > * {
   margin: 0 !important;
