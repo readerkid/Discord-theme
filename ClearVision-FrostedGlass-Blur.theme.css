@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.8
+ * @version 1.8.9
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.9 — The missing checkbox column in the toolbox menu: the blunt
+ *         `[id*="vc-toolbox"] *` reset clears background, box-shadow and
+ *         border-color on every descendant, which is how Vencord draws its menu
+ *         checkboxes - so the boxes vanished and only the checkmark SVG
+ *         remained, reading as a shifted column. Indicator ring and selected
+ *         fill restored explicitly.
  * 1.8.8 — Panel darkened (--cv-panel 0.55 -> 0.60 with a darker tone) and the
  *         scroller's right padding trimmed 2px below --cv-popup-pad, since the
  *         wrapper and the menu both pad the same side.
@@ -486,6 +492,29 @@
 #app-mount [id*="vc-toolbox"] [class*="dropdown_"] {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* THE CHECKBOX COLUMN. The reset above is deliberately blunt - it clears
+   background, box-shadow and border-color on every toolbox descendant, because
+   the halo was painted by exactly those properties somewhere in that subtree.
+   Vencord's menu checkboxes are drawn with the same three properties, so the
+   reset ate them too: with the theme on, the theme-list menu showed no boxes at
+   all, and the only trace of the column was the bare checkmark SVG on the
+   enabled row. That reads as a checkbox column that has shifted, when in fact
+   nothing is being painted.
+
+   Nothing here can reintroduce the halo: these boxes are 20px, sit in the middle
+   of a row, and are nowhere near the panel edge. Values are explicit rather than
+   inherited because the reset also clears what they would inherit from. */
+#app-mount [id*="vc-toolbox"] [class*="checkboxIndicator"] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.30) !important;
+  border-radius: 4px !important;
+}
+#app-mount [id*="vc-toolbox"] [class*="checkboxOption"][data-selected="true"] [class*="checkboxIndicator"],
+#app-mount [id*="vc-toolbox"] [class*="checkboxIndicator"][data-selected="true"] {
+  background-color: var(--brand-500, #5865f2) !important;
+  box-shadow: inset 0 0 0 2px var(--brand-500, #5865f2) !important;
 }
 
 /* The toolbox PARENT popout (top-level menu in toolbox, not nested): no blur (it
