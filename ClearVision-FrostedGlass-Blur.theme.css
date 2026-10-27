@@ -1,10 +1,13 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.7.8
+ * @version 1.7.9
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.7.9 — The probe named it: ONE frost layer, on the menu element, 12px wider
+ *         than the panel inside it. Padding zeroed and inner surfaces cleared so
+ *         the layer and the panel share one box. Panel veil 0.40 = light.
  * 1.7.8 — Panel lightened a lot on request (veil 0.59 -> 0.22). The halo was
  *         not the layer 1.7.7 removed, so this build outlines every frost
  *         layer in a naming colour: one screenshot then says which selector
@@ -339,7 +342,7 @@
 /* Make the settings sidebar more readable without darkening the main panel. */
 #app-mount :is(.sidebar__409aa, .contentHeader_e9e3ed) {
   background: rgba(0, 0, 0, 0.22) !important;
-  background-color: rgba(0, 0, 0, 0.22) !important;
+  background-color: rgba(0, 0, 0, 0.40) !important;
   background-image: none !important;
 }
 
@@ -822,25 +825,35 @@
   box-shadow: none !important;
 }
 
-/* === PROBE (temporary, remove once the halo is named) ===
-   Every rule above that paints a frost layer also sets `content`, so only real
-   frost layers have a ::after to outline. A 2px ring therefore appears exactly
-   on each layer's box, in a colour that names the selector that owns it:
+/* === THE 12px BETWEEN THE FROST LAYER AND THE PANEL ===
+   The probe screenshot settled it. Rings appear only on `[class*="menu_"]` /
+   `[class*="submenu_"]` elements - no popout_, layer_, stack_ or wrapper_ layer
+   exists anywhere. Measured across the middle menu at y=250 (background 27,
+   blurred neighbourhood pulls it up):
 
-     red      [role="menu"]        green    [class*="popout_"]
-     blue     [class*="menu_"]     magenta  [class*="submenu_"]
-     cyan     [class*="dropdown_"] yellow   [class*="layer_"]
-     orange   [class*="stack_"]    white    [class*="wrapper_"]
+       x 1072..1074   73   the probe ring, i.e. the FROST LAYER's own box edge
+       x 1076..1086   55   inside the layer, no dark surface over it
+       x 1088..       34   the panel                                   (0.62)
 
-   A menu is surrounded by a halo, so the ring that sits on the halo's OUTER
-   edge names the layer painting it. If no ring appears out there, the halo is
-   not one of ours at all - it is an element-level backdrop-filter/background
-   from ClearVision, and I target that instead. */
-#app-mount [role="menu"]::after        { outline: 2px solid #ff0000 !important; }
-#app-mount [class*="menu_"]::after     { outline: 2px solid #0000ff !important; }
-#app-mount [class*="popout_"]::after   { outline: 2px solid #00ff00 !important; }
-#app-mount [class*="submenu_"]::after  { outline: 2px solid #ff00ff !important; }
-#app-mount [class*="dropdown_"]::after { outline: 2px solid #00ffff !important; }
-#app-mount [class*="layer_"]::after    { outline: 2px solid #ffff00 !important; }
-#app-mount [class*="stack_"]::after    { outline: 2px solid #ff8000 !important; }
-#app-mount [class*="wrapper_"]::after  { outline: 2px solid #ffffff !important; }
+   So there is exactly one frost layer and it is on the menu element - the band
+   is the menu's own box showing around a darker panel that sits INSIDE it,
+   ~12px in. `inset: 0` on the layer covers the padding box, so if that 12px is
+   the menu's own padding the layer is simply bigger than the surface inside it.
+   Two things can make that gap, so both are closed here:
+
+     1. the popup's padding is zeroed, so its box IS the inner surface's box;
+     2. direct children may not paint their own surface, so if that 12px is an
+        inset child instead, the frost layer becomes the only surface and the
+        gap has no colour of its own.
+
+   Either way the band loses its own tone. The veil is 0.40: with the inner
+   surface gone the panel is one veil, so this is the light panel that was
+   asked for - lighter than the 0.34+0.38 it started at, and far lighter than
+   the 0.59 that made it too dark. */
+#app-mount :is([role="menu"], [class*="submenu_"], [class*="dropdown_"], [role="listbox"]):not([role="menu"] [role="menu"] [role="menu"]) {
+  padding: 0 !important;
+}
+#app-mount :is([role="menu"], [class*="submenu_"], [class*="dropdown_"], [role="listbox"]) > * {
+  background-color: transparent !important;
+  background-image: none !important;
+}
