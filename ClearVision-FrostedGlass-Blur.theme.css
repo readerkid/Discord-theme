@@ -1,10 +1,13 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.7
+ * @version 1.8.8
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.8.8 — Panel darkened (--cv-panel 0.55 -> 0.60 with a darker tone) and the
+ *         scroller's right padding trimmed 2px below --cv-popup-pad, since the
+ *         wrapper and the menu both pad the same side.
  * 1.8.7 — Right inset was larger than the left because the scroller carries
  *         scrollbar-gutter: stable (scrollbarGutterStable_d125d2): it reserves
  *         the scrollbar width on the right permanently, on top of the padding.
@@ -137,7 +140,7 @@
      lightness as Discord's own menus, while still letting ~45% of the blurred
      wallpaper through, so it picks up the wallpaper's colour instead of
      reading as a flat grey. */
-  --cv-panel: rgba(70, 74, 84, 0.55);
+  --cv-panel: rgba(50, 53, 60, 0.60);
 
   /* POPUP PADDING. Space between the panel edge and the rows. 0 is flush and
      reads as too tight; Discord's own menus are around 8px per box, which is
@@ -701,6 +704,11 @@
    `auto` gives the gutter back: both sides are now the padding alone. */
 #app-mount [class*="scroller_c1e9c4"] {
   scrollbar-gutter: auto !important;
+  /* The wrapper and the menu each add their padding on both sides, so the rows
+     end up inset twice. The right edge does not need the full second helping -
+     the rows' own right-hand elements (checkboxes, carets) already carry their
+     inset - so it is trimmed by 2px and keeps tracking --cv-popup-pad. */
+  padding-right: max(0px, calc(var(--cv-popup-pad) - 2px)) !important;
 }
 #app-mount [class*="submenuPaddingContainer"] > * {
   margin: 0 !important;
