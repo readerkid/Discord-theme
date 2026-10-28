@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.8.9
+ * @version 1.9.0
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.0 — Popup panel darkened to rgba(42,45,52,0.72) and the frost layer now
+ *         normalises the backdrop: saturate(0.12) brightness(0.42). Both popouts
+ *         already shared one layer and one colour, so the brightness/tint gap
+ *         between the main menu and its submenu came entirely from what sat
+ *         behind them (luma ~32 vs ~59). Normalising drops that gap to ~3 steps
+ *         and removes the colour cast from the submenu.
  * 1.8.9 — The missing checkbox column in the toolbox menu: the blunt
  *         `[id*="vc-toolbox"] *` reset clears background, box-shadow and
  *         border-color on every descendant, which is how Vencord draws its menu
@@ -146,7 +152,11 @@
      lightness as Discord's own menus, while still letting ~45% of the blurred
      wallpaper through, so it picks up the wallpaper's colour instead of
      reading as a flat grey. */
-  --cv-panel: rgba(50, 53, 60, 0.60);
+  /* POPUP PANEL. Dark neutral, and the frost normalises what is behind it too
+     (see the saturate()/brightness() in the frost layer below), so a popup over
+     the bright wallpaper and a popup over the dark app come out within ~3
+     luminance steps of each other instead of ~30. */
+  --cv-panel: rgba(42, 45, 52, 0.72);
 
   /* POPUP PADDING. Space between the panel edge and the rows. 0 is flush and
      reads as too tight; Discord's own menus are around 8px per box, which is
@@ -777,7 +787,20 @@
    at all, while the literal-24px probe visibly blurred — so this rule keeps the
    exact form that was verified working. To tune it, edit the numbers below.
    The layer sits exactly on the padding box (`inset: 0`); a negative inset made
-   the blur spill 1px outside the panel, which showed as a light halo. */
+   the blur spill 1px outside the panel, which showed as a light halo.
+
+   saturate(0.12) brightness(0.42) are what make two popups *look* alike. Every
+   popup shares this one layer and the same --cv-panel, so they were already
+   identical in CSS; what differed was the backdrop behind them. A submenu hangs
+   over the bright wallpaper (luma ~59), the parent menu over the dark app
+   (luma ~32): a 27-step gap that a 0.72-alpha panel passed through as an obvious
+   brightness difference plus a blue/violet tint.
+
+   Normalising the backdrop before it is composited attacks both: brightness
+   scales the gap to 27 x 0.42 = ~11, saturate(0.12) pulls the wallpaper's colour
+   to neutral so no tint survives, and the panel's 0.28 of see-through turns the
+   remaining ~11 into ~3 luminance steps between the two popups. Literals here on
+   purpose - see the note above about var() inside backdrop-filter. */
 [role="menu"]::after {
   content: "" !important;
   position: absolute !important;
@@ -785,8 +808,8 @@
   z-index: -1 !important;
   border-radius: inherit !important;
   pointer-events: none !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.42) !important;
+  backdrop-filter: blur(24px) saturate(0.12) brightness(0.42) !important;
 }
 
 /* Same layer for other popup types. Discord's submenus are themselves
@@ -806,8 +829,8 @@
   z-index: -1 !important;
   border-radius: inherit !important;
   pointer-events: none !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.42) !important;
+  backdrop-filter: blur(24px) saturate(0.12) brightness(0.42) !important;
 }
 
 [class*="tooltip_"]::after {
