@@ -1,10 +1,15 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.9.4
+ * @version 1.9.5
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.5 — Popups darkened one step (--cv-panel 0.15 -> 0.20) and the server tag
+ *         preview surfaces frosted. Those previews are not popouts - they sit
+ *         inside a settings pane - and were the last preview area painting flat,
+ *         so they are matched by meaning (a class containing both "tag" and
+ *         "preview") and veiled with the same panel and blur(3px).
  * 1.9.4 — Popup opacity brought in line with the rest of the theme. Every other
  *         blurred surface veils with a black rgba() between 0.10 and 0.18 (0.15
  *         on the large ones); popups were the only surface at 0.90, which made
@@ -171,19 +176,21 @@
   --cv-blur: 3px;
 
   /* POPUP PANEL. One surface, one value - the colour of every popup (menus,
-     submenus, popouts, dropdowns, the command list, the pickers). The alpha is
-     deliberately the same as the rest of the theme's blurred surfaces: the large
+     submenus, popouts, dropdowns, the command list, the pickers). The alpha lives
+     in the same band as the rest of the theme's blurred surfaces: the large
      ones (chat content, guilds sidebar, settings region) veil with
      rgba(0, 0, 0, 0.15), headers and panels with 0.18, content bodies with 0.10.
-     Popups sit at 0.15 so they read as the same material as everything else
-     instead of as a solid slab laid over it.
+     Popups sit at 0.20 - one notch above the 0.15 the large surfaces use, which
+     is the "slightly darker than the rest" step, still the same material instead
+     of a solid slab laid over it.
 
      Keep it black at a low alpha. A light tone such as rgba(64, 68, 76) only
      works once the alpha is high enough to hide the wallpaper (~0.90), and that
      near-solid panel is exactly what made the popups stand out. Raise the RGB if
      you want a tinted veil, but keep the alpha in the 0.10-0.20 band or they
-     stop matching the surfaces around them. */
-  --cv-panel: rgba(0, 0, 0, 0.15);
+     stop matching the surfaces around them. 0.20 is about as far as this can go
+     before popups stop reading as the same glass as the panels behind them. */
+  --cv-panel: rgba(0, 0, 0, 0.20);
 
   /* POPUP PADDING. Space between the panel edge and the rows. 0 is flush and
      reads as too tight; Discord's own menus are around 8px per box, which is
@@ -882,6 +889,29 @@
    its own "...PickerListWrapper" both contain "picker", and frosting both would
    stack two blurred surfaces inside each other. */
 #app-mount [class*="picker" i]:not([class*="picker" i] [class*="picker" i]) {
+  background-color: var(--cv-panel) !important;
+  background-image: none !important;
+  border-width: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+/* === SERVER TAG PREVIEWS ===
+   The tag / server-tag preview surfaces were the one preview area still painting
+   flat. They are not popouts (they live inside a settings pane), and their class
+   names are per-build hashes, so this matches by meaning rather than by hash:
+   an element whose class contains BOTH "tag" and "preview", in any casing. The
+   two-substring form is deliberate - matching "tag" alone would turn every guild
+   tag badge in chat and in member lists into a frosted chip.
+
+   Element-level form (no ::after) for the same reason as the pickers above: the
+   preview has no nested popout, so becoming a backdrop root costs nothing, and it
+   removes any assumption about the element being positioned. `:not(... ...)`
+   keeps the veil on the outermost match only, so the badge drawn inside the
+   preview cannot get a second one stacked on it. */
+#app-mount :is([class*="tag" i][class*="preview" i]):not(:is([class*="tag" i][class*="preview" i]) :is([class*="tag" i][class*="preview" i])) {
   background-color: var(--cv-panel) !important;
   background-image: none !important;
   border-width: 0 !important;
