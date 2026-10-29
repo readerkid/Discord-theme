@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.9.1
+ * @version 1.9.2
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.2 — Popouts that exist to show previews were the only surfaces left
+ *         unfrosted: the emoji / sticker / GIF / tag pickers are not role="menu"
+ *         and their class names are per-build hashes. Now matched by meaning
+ *         (`[class*="picker" i]`, outermost only) and frosted with the same panel,
+ *         and `[class*="popout_"]` broadened to `[class*="popout" i]` so
+ *         guildPopout-style surfaces are covered too.
  * 1.9.1 — Popups lightened (rgba(42,45,52,0.72) -> rgba(64,68,76,0.90)) and made
  *         actually equal: normalising the backdrop alone left a visible gap
  *         because the submenu also sits over sharp menu text, which blur smears
@@ -324,7 +330,7 @@
   background: rgba(0, 0, 0, 0.12) !important;
 }
 
-#app-mount :is([role="menu"], [role="tooltip"], [class*="popout_"], [class*="tooltip_"], [class*="messagesPopoutWrap_"], [class*="recentMentionsPopout_"]) {
+#app-mount :is([role="menu"], [role="tooltip"], [class*="popout" i], [class*="tooltip_"], [class*="messagesPopoutWrap_"], [class*="recentMentionsPopout_"]) {
   background: rgba(0, 0, 0, 0.25) !important;
   background-image: none !important;
   /* No border: the frost layer is an absolutely positioned ::after that covers
@@ -339,7 +345,7 @@
    box-shadow). That ring lands outside the frost layer, so it reads as a hard
    outline around an otherwise blurred panel. Strip border/shadow/outline there.
    Tooltips are excluded on purpose — their arrow is usually a border triangle. */
-#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"])::before {
+#app-mount :is([role="menu"], [class*="popout" i], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"])::before {
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
@@ -683,7 +689,7 @@
         popup's own background, i.e. no visible blur.
      2. Keep the selector shape simple. Over-wrapped `:is()/:not()` chains around
         this rule silently stopped matching in practice. */
-#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="tooltip_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
+#app-mount :is([role="menu"], [role="listbox"], [class*="popout" i], [class*="tooltip_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -778,9 +784,9 @@
    layer meets the popup's edge and the ring has nowhere to sit. Done for every
    popup flavour and for their pseudo-elements, since a wrapper can carry it
    just as easily as the menu itself. */
-#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]),
-#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"])::before,
-#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout_"])::after {
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout" i], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]),
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout" i])::before,
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout" i])::after {
   border-width: 0 !important;
   border-color: transparent !important;
   outline: 0 !important;
@@ -828,7 +834,7 @@
    the rule above; these are the remaining popup surfaces. */
 [class*="submenu_"]::after,
 [class*="dropdown_"]::after,
-[class*="popout_"]::after,
+[class*="popout" i]::after,
 [class*="messagesPopout"]::after,
 [class*="recentMentionsPopout"]::after,
 [class*="threadsPopout"]::after,
@@ -840,6 +846,34 @@
   z-index: -1 !important;
   border-radius: inherit !important;
   pointer-events: none !important;
+  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
+  backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
+}
+
+/* === PREVIEW-HOST POPOUTS ===
+   Frosted above: menus, submenus, dropdowns, listboxes and every *popout*. Not
+   frosted: the popouts whose whole purpose is showing previews - the emoji,
+   sticker, GIF and tag pickers. They are not role="menu", and their class names
+   are per-build hashes, so this matches by meaning (any class containing
+   "picker", any casing) instead of by hash.
+
+   These take the element-level form instead of the ::after layer deliberately:
+   the ::after needs its host to be a containing block for `position: absolute`,
+   and forcing `position: relative` on a popout that Discord positions with an
+   inline `position` would move it. Painting the panel on the element itself
+   needs no positioning assumption at all. The cost of the element-level form is
+   that the picker becomes a backdrop root, which only matters if a popout is
+   nested inside it - a picker has none.
+
+   `:not(... ...)` keeps the layer on the OUTERMOST match only: a picker root and
+   its own "...PickerListWrapper" both contain "picker", and frosting both would
+   stack two blurred surfaces inside each other. */
+#app-mount [class*="picker" i]:not([class*="picker" i] [class*="picker" i]) {
+  background-color: var(--cv-panel) !important;
+  background-image: none !important;
+  border-width: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
   -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
   backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
 }
@@ -948,8 +982,8 @@
    layer is blur-only (no background), so it is unaffected. */
 [role="menu"]::before,
 [role="menu"]::after,
-[class*="popout_"]::before,
-[class*="popout_"]::after,
+[class*="popout" i]::before,
+[class*="popout" i]::after,
 [class*="submenu_"]::before,
 [class*="submenu_"]::after,
 [class*="dropdown_"]::before,
@@ -968,7 +1002,7 @@
    halo. The frost layer sits on the popup element itself, not on these children,
    so its backdrop sampling is unaffected. */
 #app-mount [id*="vc-toolbox"] *,
-#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"]) * {
+#app-mount :is([role="menu"], [class*="popout" i], [class*="submenu_"], [class*="dropdown_"], [class*="messagesPopout"], [class*="recentMentionsPopout"]) * {
   filter: none !important;
   -webkit-filter: none !important;
 }
@@ -992,7 +1026,7 @@
 /* border-image is drawn in the border area and survives `border-color:
    transparent`; make sure nothing in the popup stack has one. */
 #app-mount [id*="vc-toolbox"] *,
-#app-mount :is([role="menu"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"]) {
+#app-mount :is([role="menu"], [class*="popout" i], [class*="submenu_"], [class*="dropdown_"]) {
   border-image: none !important;
 }
 
@@ -1007,7 +1041,7 @@
    Fix: there is only one surface now. The popup element's own background becomes
    transparent and the frost ::after paints BOTH the veil and the blur, so the
    rounded edge exists once instead of twice. */
-#app-mount :is([role="menu"], [role="listbox"], [class*="popout_"], [class*="submenu_"], [class*="dropdown_"], [class*="menu_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
+#app-mount :is([role="menu"], [role="listbox"], [class*="popout" i], [class*="submenu_"], [class*="dropdown_"], [class*="menu_"], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"]) {
   background-color: transparent !important;
   background-image: none !important;
 }
@@ -1015,7 +1049,7 @@
 [role="menu"]::after,
 [class*="submenu_"]::after,
 [class*="dropdown_"]::after,
-[class*="popout_"]::after,
+[class*="popout" i]::after,
 [class*="messagesPopout"]::after,
 [class*="recentMentionsPopout"]::after,
 [class*="threadsPopout"]::after,
