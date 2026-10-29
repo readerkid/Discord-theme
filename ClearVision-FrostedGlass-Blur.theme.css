@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.9.2
+ * @version 1.9.3
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.3 — Popup blur 24px -> 3px (the app's own --cv-blur), and the outer
+ *         popup's panel restored: its ::after was getting the backdrop-filter but
+ *         not the panel colour, because a (1,1,1) pseudo reset beat the (0,1,1)
+ *         panel rule. It painted a blurred, brightened-down backdrop with nothing
+ *         over it, which is why it read as a different brightness rather than a
+ *         missing panel. Panel restated at equal specificity at end of file.
  * 1.9.2 — Popouts that exist to show previews were the only surfaces left
  *         unfrosted: the emoji / sticker / GIF / tag pickers are not role="menu"
  *         and their class names are per-build hashes. Now matched by meaning
@@ -805,9 +811,12 @@
    identical in CSS; what differed was the backdrop behind them. A submenu hangs
    over the bright wallpaper (luma ~59), the parent menu over the dark app
    (luma ~32): a 27-step gap, and normalising it only halves the gap - at 0.72
-   alpha the leftovers were still visible, and the submenu additionally sat over
-   *sharp menu text* behind it, which blur(24px) smears into a bright haze that no
-   luminance average predicts.
+   alpha the leftovers were still visible, and a submenu additionally sits over
+   *sharp menu text* behind it, which a wide blur smears into a bright haze that no
+   luminance average predicts. The radius is now 3px (matching the app's own
+   --cv-blur) instead of 24px, so the backdrop keeps its detail: that makes the
+   0.90 opacity the thing holding the two popouts together, and it is why the
+   alpha should not be lowered further while 3px is in use.
 
    So the panel is now 0.90 opaque. That is the real equaliser: the backdrop only
    contributes 10%, and 10% of the normalised difference is ~1 luminance step,
@@ -825,8 +834,8 @@
   z-index: -1 !important;
   border-radius: inherit !important;
   pointer-events: none !important;
-  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
-  backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
+  backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
 }
 
 /* Same layer for other popup types. Discord's submenus are themselves
@@ -846,8 +855,8 @@
   z-index: -1 !important;
   border-radius: inherit !important;
   pointer-events: none !important;
-  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
-  backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
+  backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
 }
 
 /* === PREVIEW-HOST POPOUTS ===
@@ -874,8 +883,8 @@
   border-width: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
-  -webkit-backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
-  backdrop-filter: blur(24px) saturate(0.12) brightness(0.45) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
+  backdrop-filter: blur(3px) saturate(0.12) brightness(0.45) !important;
 }
 
 [class*="tooltip_"]::after {
@@ -1055,5 +1064,28 @@
 [class*="threadsPopout"]::after,
 [class*="insightsPopout"]::after,
 [role="listbox"]::after {
+  background-color: var(--cv-panel) !important;
+}
+
+
+/* === THE PANEL COLOUR MUST WIN ===
+   The outer toolbox popup rendered DARK while its submenu was correct - same
+   layer, same blur, but no panel. Diagnosis, from a screenshot: its fill was a
+   smooth neutral grey running (13,13,13) -> (47,45,45) with no trace of the
+   colourful wallpaper behind it, i.e. exactly brightness(0.45) + saturate(0.12)
+   with NOTHING painted over them. Its ::after was getting the backdrop-filter
+   but not background-color: var(--cv-panel).
+
+   Cause: specificity. The pseudo resets that were added to kill the halo strip
+   backgrounds with `#app-mount [id*="vc-toolbox"]::after { background: none
+   !important }` at (1,1,1), while the panel rule is `[role="menu"]::after` at
+   (0,1,1). The reset wins, the panel never paints, and the popup keeps a blurred
+   backdrop with no veil over it.
+
+   Restated at equal specificity, at the end of the file, so the later rule takes
+   the tie for every popup flavour. Pickers are deliberately absent: they paint
+   the panel on the element itself (see the picker block), and a second copy on
+   their ::after would stack two veils. */
+#app-mount :is([role="menu"], [role="listbox"], [class*="menu_"], [class*="submenu_"], [class*="dropdown_"], [class*="popout" i], [class*="messagesPopout"], [class*="recentMentionsPopout"], [class*="threadsPopout"], [class*="insightsPopout"])::after {
   background-color: var(--cv-panel) !important;
 }
