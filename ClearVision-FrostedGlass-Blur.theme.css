@@ -1,10 +1,16 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.9.5
+ * @version 1.9.6
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.6 — Server tag preview card frosted. The guild popout that previews a server
+ *         and its tag matched nothing in the theme (not a menu, not a popout, not
+ *         a picker), and the 1.9.5 selector could never match it either - the chip
+ *         is serverTag__6e500, with no "preview" in any class. Now targeted by its
+ *         literal container class plus a hash-proof structural fallback, and
+ *         veiled with the same panel and blur(3px).
  * 1.9.5 — Popups darkened one step (--cv-panel 0.15 -> 0.20) and the server tag
  *         preview surfaces frosted. Those previews are not popouts - they sit
  *         inside a settings pane - and were the last preview area painting flat,
@@ -898,22 +904,30 @@
   backdrop-filter: blur(3px) !important;
 }
 
-/* === SERVER TAG PREVIEWS ===
-   The tag / server-tag preview surfaces were the one preview area still painting
-   flat. They are not popouts (they live inside a settings pane), and their class
-   names are per-build hashes, so this matches by meaning rather than by hash:
-   an element whose class contains BOTH "tag" and "preview", in any casing. The
-   two-substring form is deliberate - matching "tag" alone would turn every guild
-   tag badge in chat and in member lists into a frosted chip.
+/* === SERVER TAG PREVIEW CARD ===
+   The guild popout that previews a server and its tag - the card with a splash
+   banner, the icon, "Murder of PointCrows" and the CROW chip - was still painting
+   flat. It is not role="menu", not *popout* and not a picker, so nothing in the
+   theme reached it. This replaces the earlier `[class*="tag" i][class*="preview"
+   i]` guess, which could never match: the real chip is `serverTag__6e500` and no
+   element in that DOM has both words in one class.
 
-   Element-level form (no ::after) for the same reason as the pickers above: the
-   preview has no nested popout, so becoming a backdrop root costs nothing, and it
-   removes any assumption about the element being positioned. `:not(... ...)`
-   keeps the veil on the outermost match only, so the badge drawn inside the
-   preview cannot get a second one stacked on it. */
-#app-mount :is([class*="tag" i][class*="preview" i]):not(:is([class*="tag" i][class*="preview" i]) :is([class*="tag" i][class*="preview" i])) {
+   Targeted two ways so a hash rotation cannot silently unhook it:
+
+   - the literal class from the DOM: container_dca174
+   - a structural fallback that survives hashes: a container with a banner as a
+     DIRECT child that also holds a server tag chip. The `>` matters - popout
+     wrappers such as positionContainer also contain the tag, just not a banner
+     child, so they are not matched and the veil stays one layer deep.
+
+   Element-level veil + blur(3px), the same material as the menus and pickers. The
+   splash and icon are child backgrounds and stay sharp on purpose: they are the
+   preview. Only the card's own surface becomes glass, and its background-image is
+   deliberately left alone so a build that paints the splash on the container
+   instead of a child cannot lose it. */
+#app-mount [class*="container_dca174"],
+#app-mount [class*="container" i]:has(> [class*="banner" i]):has([class*="serverTag" i]) {
   background-color: var(--cv-panel) !important;
-  background-image: none !important;
   border-width: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
