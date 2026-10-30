@@ -1,10 +1,17 @@
 /**
  * @name ClearVision FrostedGlass Blur
  * @author ClearVision Team, customized for Kazratilar
- * @version 1.9.6
+ * @version 1.9.7
  * @description ClearVision V7 with frosted glass backgrounds and adjustable blur behind overlays.
  * @source https://github.com/ClearVision/ClearVision-v7
  *
+ * 1.9.7 — User previews (profile popout and full profile modal) frosted. Two
+ *         causes: the popup reset that clears element-level backdrop-filter lists
+ *         `[class*="popout" i]`, and "user-profile-popout" contains "popout", so
+ *         it was stripped there while not being in the ::after frost list - no
+ *         blur on either path; and the opaque panel would have hidden one anyway.
+ *         One guarded rule now supplies the veil and a literal blur(3px), with the
+ *         :not(.custom-user-profile-theme) guard raising it above that reset.
  * 1.9.6 — Server tag preview card frosted. The guild popout that previews a server
  *         and its tag matched nothing in the theme (not a menu, not a popout, not
  *         a picker), and the 1.9.5 selector could never match it either - the chip
@@ -581,15 +588,6 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* User profile popouts AND full profile modals: never paint our own background
-   here — users with custom profile themes must see their backdrop (light custom
-   backgrounds + dark text only break when we replace it with a dark veil).
-   Default profiles keep Discord's native panel underneath; we just frost it. */
-:is(.user-profile-popout, .user-profile-modal-v2) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
-}
-
 /* --- BULLETPROOF SAFE RESET: no dialog (or child) carries a backdrop-filter ---
    Runs AFTER all blur rules above. The image viewer's focusLock has role="dialog";
    the carousel modal is absolutely positioned inside it, so a backdrop-filter here
@@ -607,12 +605,35 @@
   backdrop-filter: blur(var(--cv-blur)) !important;
 }
 
-/* Message/pinned popouts and message popouts inside dialogs: their frost also
-   comes from the ::after layer now (see FROST ARCHITECTURE below), which the
-   [role="dialog"] reset cannot strip because it only matches elements. */
-#app-mount :is(.user-profile-popout, .user-profile-modal-v2) {
-  -webkit-backdrop-filter: blur(var(--cv-blur)) !important;
-  backdrop-filter: blur(var(--cv-blur)) !important;
+/* --- USER PREVIEWS: profile popout + full profile modal ---------------------
+   Two separate things kept these unblurred.
+
+   1. The blur was stripped by a selector accident. Popups frost through their
+      ::after layer, so there is an element-level reset clearing backdrop-filter
+      on every popup - and its list includes `[class*="popout" i]`. The class
+      "user-profile-popout" contains "popout", so the profile popout matched that
+      reset while NOT being in the ::after frost list: no blur from either path.
+   2. Even unclipped, there would have been nothing to see. The popout paints an
+      opaque panel, so a blur behind it is invisible; it needs a veil, like every
+      other frosted surface here.
+
+   Both fixes live in ONE rule on purpose: the `:not(.custom-user-profile-theme)`
+   guard takes the selector from (1,1,0) to (1,2,0), which is what lets it beat
+   the `[class*="popout" i]` reset without moving anything around or registering
+   a nested `:is()` chain.
+
+   The literal radius is not style drift - var() inside this backdrop-filter has
+   silently produced no blur in this build before (see the frost-layer note).
+
+   The Nitro guard is the same one every other profile rule uses: a custom profile
+   must keep Discord's own backdrop, since replacing it with a dark veil is
+   exactly what broke those. Custom profiles get neither veiled nor blurred, which
+   also keeps them from becoming a backdrop root for their own nested popouts. */
+#app-mount :is(.user-profile-popout, .user-profile-modal-v2):not(.custom-user-profile-theme) {
+  background-color: var(--cv-panel) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  backdrop-filter: blur(3px) !important;
 }
 
 /* Command autocomplete popup: blur the POPUP SURFACE, not the tall options list.
